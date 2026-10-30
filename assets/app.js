@@ -215,6 +215,7 @@ function show(v) {
   current = v;
   for (const s of $$(".view")) s.hidden = s.dataset.view !== v;
   for (const a of $$("[data-nav]")) { if (a.dataset.nav === v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); }
+  movePills();
   document.title = TITLES[v];
   renderView(v);
   window.scrollTo(0, scrollMem[v] || 0);
@@ -254,6 +255,23 @@ function warmViews() {
   };
   idle(step);
 }
+/* the liquid-glass lens slides under the active tab (top nav + phone tab bar) */
+function movePills() {
+  for (const nav of $$(".topnav, .tabbar")) {
+    const pill = nav.querySelector(".nav-pill");
+    const a = nav.querySelector('[aria-current="page"]');
+    if (!pill) continue;
+    if (!a || !nav.offsetParent && getComputedStyle(nav).position !== "fixed") { pill.style.opacity = "0"; continue; }
+    pill.style.opacity = "1";
+    pill.style.width = a.offsetWidth + "px";
+    pill.style.transform = `translateX(${a.offsetLeft}px)`;
+  }
+}
+let pillTimer = 0;
+window.addEventListener("resize", () => { clearTimeout(pillTimer); pillTimer = setTimeout(movePills, 80); }, { passive: true });
+mqDesk.addEventListener("change", movePills);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(movePills);
+requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.add("pills-ready")));
 function renderView(v) {
   if (v === "home") renderHome();
   else if (v === "explore") renderExplore();
