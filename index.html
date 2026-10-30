@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Skill Atlas — GitHub 技能 · MCP · 开源工具星图</title>
 <meta name="description" content="集结 GitHub 上真正有用的 Agent Skills、MCP 服务器与插件、AI Agent 框架、开发工具与学习资源。每个项目都标注作者头像、作者名与 GitHub 地址。">
+<meta name="theme-color" content="#0a0d13">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Skill Atlas — GitHub 技能 · MCP · 开源工具星图">
+<meta property="og:description" content="1,474 个精选项目 · 894 个 Agent Skills，每个都标注专业领域与工作技能。支持模糊搜索，输错也能找到。">
+<meta property="og:url" content="https://liveliho.github.io/skill-mcp-hub/">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,900&family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -35,31 +40,35 @@
   <section class="hero">
     <p class="kicker">GITHUB · SKILLS · MCP · OPEN SOURCE</p>
     <h1>把 GitHub 上<br><span class="hl">真正有用</span>的项目，<br>集结在一张星图里。</h1>
-    <p class="hero-desc">Agent Skills、MCP 服务器与插件、AI Agent 框架、趁手的开发工具、值得收藏的学习资源——全部经过筛选：有星标门槛、无分叉镜像、未被归档、简介清晰。每个项目都带着作者的头像、名字和直达链接。</p>
+    <p class="hero-desc">Agent Skills、MCP 服务器与插件、AI Agent 框架、趁手的开发工具、值得收藏的学习资源——全部经过筛选：有星标门槛、无分叉镜像、未被归档、简介清晰。每个项目都带着作者的头像、名字和直达链接，并且逐个标注了<strong>专业领域</strong>与<strong>具体工作技能</strong>：它到底是给哪个职业、解决哪件工作用的，一眼看清。</p>
     <div class="stats" id="stats">
       <div class="stat"><span class="stat-num" id="stat-total">—</span><span class="stat-label">收录项目</span></div>
-      <div class="stat"><span class="stat-num" id="stat-stars">—</span><span class="stat-label">累计 Star</span></div>
+      <div class="stat"><span class="stat-num" id="stat-skills">—</span><span class="stat-label">Agent Skills</span></div>
       <div class="stat"><span class="stat-num" id="stat-authors">—</span><span class="stat-label">作者 / 组织</span></div>
-      <div class="stat"><span class="stat-num" id="stat-cats">—</span><span class="stat-label">主题分类</span></div>
+      <div class="stat"><span class="stat-num" id="stat-cats">—</span><span class="stat-label">专业领域</span></div>
     </div>
     <div class="hero-search">
       <span class="search-icon">⌕</span>
-      <input id="search" type="search" placeholder="搜项目、作者、关键词……比如 playwright、skills、rag、n8n" autocomplete="off">
+      <input id="search" type="search" placeholder="搜项目、作者、专业、工作技能……比如 playwright、营销、渗透测试" autocomplete="off">
       <kbd>⌘ K</kbd>
     </div>
+    <p class="search-hint">找不到？打开下方的<strong>模糊搜索</strong>：输错字母、只记大概拼写（比如 <code>plywrght</code>、<code>sklls</code>）也能按相关度找出来。</p>
   </section>
 
   <section id="explore" class="explore">
     <div class="toolbar">
       <div class="pills" id="pills" role="tablist"></div>
       <div class="toolbar-right">
+        <label class="toggle"><input type="checkbox" id="fuzzy-only"><span></span>模糊搜索</label>
         <label class="toggle"><input type="checkbox" id="featured-only"><span></span>仅看官方出品</label>
+        <select id="field-filter" aria-label="按专业领域筛选"></select>
         <select id="sort" aria-label="排序">
           <option value="stars">按 Star 排序</option>
           <option value="forks">按 Fork 排序</option>
           <option value="updated">最近更新</option>
           <option value="name">按名称 A–Z</option>
         </select>
+        <button id="shuffle-btn" type="button" class="ghost-btn">随机发现</button>
       </div>
     </div>
     <p class="result-line" id="result-line"></p>
@@ -79,7 +88,11 @@
     <div class="method-grid">
       <div class="method-card">
         <h3>有用，才收录</h3>
-        <p>以 GitHub 实时数据为准入线：原则上 Star 不低于 600（官方 SDK 等重要项目酌情放宽），且有清晰的项目简介。无简介、难判断用途的项目不收。</p>
+        <p>以 GitHub 实时数据为准入线：综合项目原则上 Star 不低于 600；垂类专业 Skill（法律、医疗、金融等）受众小、星标天然低，放宽到 20 起，但同样要求有清晰的项目简介。无简介、难判断用途的项目不收。</p>
+      </div>
+      <div class="method-card">
+        <h3>逐个标注专业</h3>
+        <p>每个项目都按名称、简介与标签逐项判定，标注所属专业领域（软件开发、市场营销、网络安全、金融与交易、法律与合规等 16 类）与具体工作技能（如 SEO 优化、渗透测试、合同审查），卡片上一眼可见，也能按领域筛选。</p>
       </div>
       <div class="method-card">
         <h3>去伪存真</h3>
@@ -102,6 +115,7 @@
   <p class="foot-links"><a href="https://github.com/liveliho/skill-mcp-hub" target="_blank" rel="noopener">仓库主页</a> · <a href="https://github.com/liveliho/skill-mcp-hub/issues" target="_blank" rel="noopener">推荐收录 / 反馈</a></p>
 </footer>
 
+<button id="to-top" type="button" aria-label="回到顶部">↑</button>
 <script src="assets/app.js"></script>
 </body>
 </html>
