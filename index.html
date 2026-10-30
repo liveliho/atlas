@@ -3,66 +3,72 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Skill Atlas — GitHub 技能 · MCP · 开源工具星图</title>
-<meta name="description" content="集结 GitHub 上真正有用的 Agent Skills、MCP 服务器与插件、AI Agent 框架、开发工具与学习资源。每个项目都标注作者头像、作者名与 GitHub 地址。">
-<meta name="theme-color" content="#0a0d13">
+<title>Atlas — GitHub 上值得收藏的项目</title>
+<meta name="description" content="Atlas 集结 GitHub 上真正有用的项目：5,320 个万星级仓库、Agent Skills、MCP、AI 工具与开发神器，共 6,231 个，全部标注作者、专业领域与工作技能。">
+<meta name="theme-color" content="#f5f5f7">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Skill Atlas — GitHub 技能 · MCP · 开源工具星图">
-<meta property="og:description" content="1,474 个精选项目 · 894 个 Agent Skills，每个都标注专业领域与工作技能。支持模糊搜索，输错也能找到。">
+<meta property="og:title" content="Atlas — GitHub 上值得收藏的项目">
+<meta property="og:description" content="6,231 个精选项目 · 其中 5,320 个 Star 过万。支持模糊搜索、大类与专业领域筛选。">
 <meta property="og:url" content="https://liveliho.github.io/skill-mcp-hub/">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,900&family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%230071e3'/><stop offset='1' stop-color='%237d7aff'/></linearGradient></defs><rect x='6' y='6' width='88' height='88' rx='26' fill='url(%23g)'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='-apple-system,sans-serif' font-weight='700'>A</text></svg>">
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 <div class="bg" aria-hidden="true">
-  <div class="glow glow-a"></div>
-  <div class="glow glow-b"></div>
-  <div class="glow glow-c"></div>
-  <div class="grain"></div>
+  <div class="aura aura-a"></div>
+  <div class="aura aura-b"></div>
+  <div class="aura aura-c"></div>
 </div>
 
 <header class="topbar">
-  <a class="brand" href="#">
-    <span class="brand-mark">✦</span>
-    <span class="brand-name">Skill <em>Atlas</em></span>
-    <span class="brand-sub">技能星图</span>
-  </a>
-  <nav class="topnav">
-    <a href="#explore">探索项目</a>
-    <a href="#method">收录标准</a>
-    <a href="https://github.com/liveliho/skill-mcp-hub" target="_blank" rel="noopener">GitHub 仓库 ↗</a>
-  </nav>
+  <div class="topbar-in">
+    <a class="brand" href="#" aria-label="Atlas 首页">
+      <span class="brand-mark" aria-hidden="true">A</span>
+      <span class="brand-name">Atlas</span>
+    </a>
+    <nav class="topnav" aria-label="主导航">
+      <a href="#explore">探索</a>
+      <a href="#method">收录标准</a>
+      <a class="nav-gh" href="https://github.com/liveliho/skill-mcp-hub" target="_blank" rel="noopener">GitHub ↗</a>
+    </nav>
+  </div>
 </header>
 
 <main>
   <section class="hero">
-    <p class="kicker">GITHUB · SKILLS · MCP · OPEN SOURCE</p>
-    <h1>把 GitHub 上<br><span class="hl">真正有用</span>的项目，<br>集结在一张星图里。</h1>
-    <p class="hero-desc">Agent Skills、MCP 服务器与插件、AI Agent 框架、趁手的开发工具、值得收藏的学习资源——全部经过筛选：有星标门槛、无分叉镜像、未被归档、简介清晰。每个项目都带着作者的头像、名字和直达链接，并且逐个标注了<strong>专业领域</strong>与<strong>具体工作技能</strong>：它到底是给哪个职业、解决哪件工作用的，一眼看清。</p>
-    <div class="stats" id="stats">
-      <div class="stat"><span class="stat-num" id="stat-total">—</span><span class="stat-label">收录项目</span></div>
-      <div class="stat"><span class="stat-num" id="stat-skills">—</span><span class="stat-label">Agent Skills</span></div>
-      <div class="stat"><span class="stat-num" id="stat-authors">—</span><span class="stat-label">作者 / 组织</span></div>
-      <div class="stat"><span class="stat-num" id="stat-cats">—</span><span class="stat-label">专业领域</span></div>
+    <p class="kicker">GitHub · Skills · MCP · Open Source</p>
+    <h1>好项目，<br class="br-m">一图尽览。</h1>
+    <p class="hero-desc">Atlas 把 GitHub 上真正有用的项目集结在一起：<strong>5,320 个 Star 过万的仓库</strong>，加上精选的 Agent Skills 与 MCP 工具。每个项目都标注作者、专业领域与具体工作技能，它是给谁用的、解决什么工作，一眼看清。</p>
+    <div class="stats" role="list" aria-label="站点统计">
+      <div class="stat" role="listitem"><span class="stat-num" id="stat-total">—</span><span class="stat-label">收录项目</span></div>
+      <div class="stat" role="listitem"><span class="stat-num" id="stat-over10k">—</span><span class="stat-label">万星+ 项目</span></div>
+      <div class="stat" role="listitem"><span class="stat-num" id="stat-authors">—</span><span class="stat-label">作者 / 组织</span></div>
+      <div class="stat" role="listitem"><span class="stat-num" id="stat-cats">—</span><span class="stat-label">专业领域</span></div>
     </div>
     <div class="hero-search">
-      <span class="search-icon">⌕</span>
-      <input id="search" type="search" placeholder="搜项目、作者、专业、工作技能……比如 playwright、营销、渗透测试" autocomplete="off">
-      <kbd>⌘ K</kbd>
+      <label class="sr-only" for="search">搜索项目、作者、专业或工作技能</label>
+      <span class="search-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg>
+      </span>
+      <input id="search" type="search" placeholder="搜项目、作者、技能……比如 playwright、营销、渗透测试" autocomplete="off">
+      <kbd aria-hidden="true">⌘K</kbd>
     </div>
-    <p class="search-hint">找不到？打开下方的<strong>模糊搜索</strong>：输错字母、只记大概拼写（比如 <code>plywrght</code>、<code>sklls</code>）也能按相关度找出来。</p>
+    <p class="search-hint">记不准拼写？打开下方<strong>模糊搜索</strong>，输 <code>plywrght</code>、<code>sklls</code> 也能找到。</p>
   </section>
 
   <section id="explore" class="explore">
     <div class="toolbar">
-      <div class="pills" id="pills" role="tablist"></div>
-      <div class="toolbar-right">
-        <label class="toggle"><input type="checkbox" id="fuzzy-only"><span></span>模糊搜索</label>
-        <label class="toggle"><input type="checkbox" id="featured-only"><span></span>仅看官方出品</label>
-        <select id="field-filter" aria-label="按专业领域筛选"></select>
-        <select id="sort" aria-label="排序">
+      <div class="pills-scroll">
+        <div class="pills" id="pills" role="group" aria-label="按大类筛选"></div>
+      </div>
+      <div class="controls">
+        <label class="toggle"><input type="checkbox" id="over10k-only"><span class="track" aria-hidden="true"></span>仅看万星+</label>
+        <label class="toggle"><input type="checkbox" id="featured-only"><span class="track" aria-hidden="true"></span>仅看官方</label>
+        <label class="toggle"><input type="checkbox" id="fuzzy-only"><span class="track" aria-hidden="true"></span>模糊搜索</label>
+        <label class="sr-only" for="field-filter">按专业领域筛选</label>
+        <select id="field-filter"></select>
+        <label class="sr-only" for="sort">排序方式</label>
+        <select id="sort">
           <option value="stars">按 Star 排序</option>
           <option value="forks">按 Fork 排序</option>
           <option value="updated">最近更新</option>
@@ -71,51 +77,58 @@
         <button id="shuffle-btn" type="button" class="ghost-btn">随机发现</button>
       </div>
     </div>
-    <p class="result-line" id="result-line"></p>
+    <p class="result-line" id="result-line" aria-live="polite">正在加载项目数据…</p>
     <div class="grid" id="grid"></div>
-    <div class="empty" id="empty" hidden>
-      <p class="empty-big">这片星域暂时是空的</p>
-      <p>换个关键词，或者放宽分类再试试。</p>
-      <button id="reset-btn" type="button">清除筛选</button>
+    <div class="empty glass" id="empty" hidden>
+      <p class="empty-big">这里暂时是空的</p>
+      <p>换个关键词，或者放宽筛选条件再试试。</p>
+      <button id="reset-btn" type="button" class="primary-btn">清除全部筛选</button>
     </div>
     <div class="more-wrap">
-      <button id="more-btn" type="button">加载更多项目</button>
+      <button id="more-btn" type="button" class="primary-btn" style="display:none">加载更多项目</button>
     </div>
   </section>
 
   <section id="method" class="method">
-    <h2><span class="sec-en">How we curate</span>收录标准</h2>
+    <h2>收录标准</h2>
+    <p class="method-sub">Curated, not crawled blindly.</p>
     <div class="method-grid">
-      <div class="method-card">
+      <div class="method-card glass">
+        <h3>万星专区</h3>
+        <p>全站 Star 过万的非 Fork、未归档仓库共 5,399 个，Atlas 收录其中 5,320 个（其余为无简介项目），并逐个打上「万星+」徽章，可一键只看它们。</p>
+      </div>
+      <div class="method-card glass">
         <h3>有用，才收录</h3>
-        <p>以 GitHub 实时数据为准入线：综合项目原则上 Star 不低于 600；垂类专业 Skill（法律、医疗、金融等）受众小、星标天然低，放宽到 20 起，但同样要求有清晰的项目简介。无简介、难判断用途的项目不收。</p>
+        <p>其余精选项目以 GitHub 实时数据为准入线：综合项目原则上 Star 不低于 600；垂类专业 Skill（法律、医疗、金融等）受众小，放宽到 20 起，但都必须有清晰简介。</p>
       </div>
-      <div class="method-card">
+      <div class="method-card glass">
         <h3>逐个标注专业</h3>
-        <p>每个项目都按名称、简介与标签逐项判定，标注所属专业领域（软件开发、市场营销、网络安全、金融与交易、法律与合规等 16 类）与具体工作技能（如 SEO 优化、渗透测试、合同审查），卡片上一眼可见，也能按领域筛选。</p>
+        <p>每个项目按名称、简介与标签判定所属大类（18 类）、专业领域（16 类）与具体工作技能（如 SEO 优化、渗透测试、合同审查），卡片上一眼可见，也能按领域筛选。</p>
       </div>
-      <div class="method-card">
+      <div class="method-card glass">
         <h3>去伪存真</h3>
-        <p>剔除 Fork 镜像与已归档项目；分类不看容易被刷的 Topic 标签，而是按项目名称与简介的真实内容重新归类，避免「蹭标签」的项目混进 MCP / Skills 区。</p>
+        <p>剔除 Fork 镜像与已归档项目；分类不看容易被刷的 Topic 标签，而是按项目名称与简介的真实内容重新归类，避免蹭标签的项目混进 MCP / Skills 区。</p>
       </div>
-      <div class="method-card">
+      <div class="method-card glass">
         <h3>官方优先</h3>
         <p>Model Context Protocol 官方组织、Anthropic、GitHub、Microsoft、OpenAI 等官方出品单独标注「官方」徽章，找权威实现先看它们。</p>
       </div>
-      <div class="method-card">
+      <div class="method-card glass">
         <h3>持续更新</h3>
-        <p>数据来自 GitHub 搜索 API 的实时抓取（抓取脚本就在本仓库里）。发现遗漏的好项目，欢迎到仓库提 Issue 推荐收录。</p>
+        <p>数据来自 GitHub Search API 的抓取（脚本就在本仓库里）。发现遗漏的好项目，欢迎到仓库提 Issue 推荐收录。</p>
       </div>
     </div>
   </section>
 </main>
 
 <footer>
-  <p>Skill Atlas · 技能星图 — 由 <a href="https://github.com/liveliho" target="_blank" rel="noopener">liveliho</a> 维护 · 数据来源于 GitHub 公开信息 · 项目版权归各自作者所有</p>
+  <p>Atlas — 由 <a href="https://github.com/liveliho" target="_blank" rel="noopener">liveliho</a> 维护 · 数据来源于 GitHub 公开信息 · 项目版权归各自作者所有</p>
   <p class="foot-links"><a href="https://github.com/liveliho/skill-mcp-hub" target="_blank" rel="noopener">仓库主页</a> · <a href="https://github.com/liveliho/skill-mcp-hub/issues" target="_blank" rel="noopener">推荐收录 / 反馈</a></p>
 </footer>
 
-<button id="to-top" type="button" aria-label="回到顶部">↑</button>
+<button id="to-top" type="button" aria-label="回到顶部">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m-7 7 7-7 7 7"/></svg>
+</button>
 <script src="assets/app.js"></script>
 </body>
 </html>

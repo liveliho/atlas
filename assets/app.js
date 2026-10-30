@@ -1,27 +1,34 @@
-const CATEGORIES = [
-  { id: "all", label: "全部", color: "#eef1f6" },
-  { id: "MCP", label: "MCP 服务器与插件", color: "#2dd4bf" },
-  { id: "Skills", label: "Agent Skills 技能", color: "#ff6b4a" },
-  { id: "AI Agents", label: "AI Agent 与大模型", color: "#a78bfa" },
-  { id: "Dev Tools", label: "开发与效率工具", color: "#f5c451" },
-  { id: "Learning", label: "学习与精选清单", color: "#7dd3fc" },
-];
-const FIELD_COLORS = {
-  "软件开发": "#7dd3fc", "产品与设计": "#f0abfc", "数据与分析": "#6ee7b7",
-  "人工智能与机器学习": "#a78bfa", "运维与DevOps": "#fca5a5", "网络安全": "#f87171",
-  "市场营销": "#ff6b4a", "内容与写作": "#fcd34d", "视频与多媒体": "#f9a8d4",
-  "金融与交易": "#f5c451", "法律与合规": "#c4b5fd", "办公与效率": "#2dd4bf",
-  "教育与研究": "#93c5fd", "电商与销售": "#fdba74", "医疗健康": "#86efac", "其他专业": "#9aa6b8",
+const CAT_DOTS = {
+  "MCP": "#0a84ff", "Skills": "#ff6b4a", "AI智能体与大模型": "#7d7aff",
+  "AI工具与机器学习": "#bf5af2", "开发工具": "#64d2ff", "前端与Web开发": "#30d158",
+  "后端与数据库": "#ffd60a", "运维云原生与自托管": "#ff9f0a", "网络安全": "#ff453a",
+  "数据与分析": "#32ade6", "效率与办公": "#66d4cf", "学习资源与Awesome": "#ac8e68",
+  "设计与UI": "#ff6482", "视频多媒体与内容": "#ff375f", "金融商业与电商": "#63e6be",
+  "移动与桌面应用": "#70d7ff", "游戏与娱乐": "#da8fff", "其他实用项目": "#aeaeb2",
 };
-const PAGE = 60;
+const FIELD_COLORS = {
+  "软件开发": "#64d2ff", "产品与设计": "#ff6482", "数据与分析": "#32ade6",
+  "人工智能与机器学习": "#7d7aff", "运维与DevOps": "#ff9f0a", "网络安全": "#ff453a",
+  "市场营销": "#ff6b4a", "内容与写作": "#ffd60a", "视频与多媒体": "#ff375f",
+  "金融与交易": "#63e6be", "法律与合规": "#bf5af2", "办公与效率": "#66d4cf",
+  "教育与研究": "#0a84ff", "电商与销售": "#ff9f0a", "医疗健康": "#30d158", "其他专业": "#aeaeb2",
+};
+let CATEGORIES = [{ id: "all", label: "全部" }];
+function buildCategories() {
+  const counts = {};
+  projects.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
+  const cats = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  CATEGORIES = [{ id: "all", label: "全部" }].concat(cats.map((c) => ({ id: c, label: c })));
+}
+const PAGE = 48;
 let projects = [];
-let state = { cat: "all", field: "all", q: "", sort: "stars", featured: false, fuzzy: false, shown: PAGE };
+let state = { cat: "all", field: "all", q: "", sort: "stars", featured: false, over10k: false, fuzzy: false, shown: PAGE };
 
 const $ = (s) => document.querySelector(s);
 const fmt = (n) => n >= 1000 ? (n / 1000).toFixed(n >= 100000 ? 0 : 1).replace(/\.0$/, "") + "k" : String(n);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const catColor = (id) => (CATEGORIES.find((c) => c.id === id) || {}).color || "#eef1f6";
-const catLabel = (id) => (CATEGORIES.find((c) => c.id === id) || {}).label || id;
+const catColor = (id) => CAT_DOTS[id] || "#aeaeb2";
+const catLabel = (id) => id;
 const fieldColor = (f) => FIELD_COLORS[f] || "#9aa6b8";
 
 /* ---------------- fuzzy matching ---------------- */
@@ -89,6 +96,7 @@ function filtered() {
     if (state.cat !== "all" && p.category !== state.cat) return false;
     if (state.field !== "all" && p.field !== state.field) return false;
     if (state.featured && !p.featured) return false;
+    if (state.over10k && !p.over10k) return false;
     if (tokens.length) {
       if (state.fuzzy) {
         p._score = fuzzyMatch(p, tokens);
@@ -118,7 +126,7 @@ function filtered() {
 function renderPills() {
   $("#pills").innerHTML = CATEGORIES.map((c) => {
     const n = c.id === "all" ? projects.length : projects.filter((p) => p.category === c.id).length;
-    return `<button type="button" role="tab" aria-selected="${state.cat === c.id}" class="pill ${state.cat === c.id ? "active" : ""}" data-cat="${c.id}">${c.label}<small>${n}</small></button>`;
+    return `<button type="button" aria-pressed="${state.cat === c.id}" class="pill ${state.cat === c.id ? "active" : ""}" data-cat="${esc(c.id)}">${esc(c.label)}<small>${n}</small></button>`;
   }).join("");
   document.querySelectorAll(".pill").forEach((b) =>
     b.addEventListener("click", () => { state.cat = b.dataset.cat; state.shown = PAGE; renderPills(); render(); })
@@ -143,7 +151,7 @@ function card(p, i) {
         <div class="repo-name"><span class="owner-name">${esc(p.owner)} /</span> ${highlight(p.name, tokens)}</div>
         <div class="author-line">作者 · ${esc(p.owner)}</div>
       </div>
-      ${p.featured ? '<span class="badge">官方</span>' : ""}
+      <span class="badges">${p.over10k ? '<span class="badge badge-10k">万星+</span>' : ""}${p.featured ? '<span class="badge badge-off">官方</span>' : ""}</span>
     </div>
     <p class="desc">${highlight(p.description, tokens)}</p>
     <div class="pro-line">
@@ -183,13 +191,12 @@ async function init() {
     $("#result-line").textContent = "数据加载失败，请刷新重试。";
     return;
   }
+  buildCategories();
   $("#stat-total").textContent = projects.length.toLocaleString();
-  const totalStars = projects.reduce((s, p) => s + p.stars, 0);
-  $("#stat-stars").textContent = totalStars >= 1e6 ? (totalStars / 1e6).toFixed(1) + "M" : fmt(totalStars);
+  const o10 = $("#stat-over10k");
+  if (o10) o10.textContent = projects.filter((p) => p.over10k).length.toLocaleString();
   $("#stat-authors").textContent = new Set(projects.map((p) => p.owner.toLowerCase())).size.toLocaleString();
   $("#stat-cats").textContent = new Set(projects.map((p) => p.field)).size;
-  const skillsEl = $("#stat-skills");
-  if (skillsEl) skillsEl.textContent = projects.filter((p) => p.category === "Skills").length.toLocaleString();
   renderPills();
   renderFieldOptions();
   render();
@@ -198,12 +205,14 @@ $("#search").addEventListener("input", (e) => onSearch(e.target.value));
 $("#sort").addEventListener("change", (e) => { state.sort = e.target.value; state.shuffle = false; state.shown = PAGE; render(); });
 $("#field-filter").addEventListener("change", (e) => { state.field = e.target.value; state.shown = PAGE; render(); });
 $("#featured-only").addEventListener("change", (e) => { state.featured = e.target.checked; state.shown = PAGE; render(); });
+$("#over10k-only").addEventListener("change", (e) => { state.over10k = e.target.checked; state.shown = PAGE; render(); });
 $("#fuzzy-only").addEventListener("change", (e) => { state.fuzzy = e.target.checked; state.shown = PAGE; render(); });
 $("#more-btn").addEventListener("click", () => { state.shown += PAGE; render(); });
 $("#reset-btn").addEventListener("click", () => {
-  state = { cat: "all", field: "all", q: "", sort: "stars", featured: false, fuzzy: false, shown: PAGE };
+  clearTimeout(debounce);
+  state = { cat: "all", field: "all", q: "", sort: "stars", featured: false, over10k: false, fuzzy: false, shown: PAGE };
   $("#search").value = ""; $("#sort").value = "stars"; $("#featured-only").checked = false;
-  $("#fuzzy-only").checked = false; $("#field-filter").value = "all";
+  $("#fuzzy-only").checked = false; $("#over10k-only").checked = false; $("#field-filter").value = "all";
   renderPills(); render();
 });
 $("#shuffle-btn").addEventListener("click", () => {
