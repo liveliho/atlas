@@ -73,3 +73,5 @@ Apple 产品页式的电影级滚动（`assets/motion.js`，GSAP + ScrollTrigger
 ## 许可
 
 站点代码以 MIT 许可开放；收录项目的版权与许可归各自作者所有，本站仅做索引与链接。
+
+<!-- pages build: cinematic scroll release 2026-10-31 -->
