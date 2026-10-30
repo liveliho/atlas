@@ -1,7 +1,8 @@
-/* Atlas app v3 — single-file catalog engine.
-   Data: one compact index (data/index.json) instead of 57 chunks.
+/* Atlas app — catalog engine.
+   Data: one compact index (data/index.json, built by scripts/build_index.py).
    One search core shared by the explore grid and the ⌘K palette.
-   Rendering is incremental: "load more" appends, never rebuilds. */
+   Rendering is incremental: "load more" appends, never rebuilds.
+   Scroll choreography lives in motion.js and is optional. */
 "use strict";
 
 const CAT_DOTS = {
@@ -13,12 +14,18 @@ const CAT_DOTS = {
   "移动与桌面应用": "#70d7ff", "游戏与娱乐": "#da8fff", "其他实用项目": "#aeaeb2",
 };
 const PAGE = 48;
+/* auto-load on scroll stops after this many cards, so the sections below the
+   grid (AI 导航, 社区, 阅读) stay reachable; the button keeps loading after that */
+const autoMax = () => (matchMedia("(max-width: 767.5px)").matches ? 72 : 144);
 const $ = (s) => document.querySelector(s);
 const fmt = (n) => n >= 1000 ? (n / 1000).toFixed(n >= 100000 ? 0 : 1).replace(/\.0$/, "") + "k" : String(n);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const safeGhUrl = (u) => (typeof u === "string" && u.startsWith("https://github.com/")) ? u : null;
 const repoUrl = (p) => "https://github.com/" + p.fn;
-const avatarUrl = (p) => "https://github.com/" + p.o + ".png?size=96";
+const avatarUrl = (o) => "https://github.com/" + o + ".png?size=96";
+const hue = (s) => { let h = 0; for (const c of s.toLowerCase()) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+/* avatar tile: letter fallback underneath, image removed if it fails to load */
+const avatarHTML = (o, cls) => `<span class="av${cls ? " " + cls : ""}" style="--h:${hue(o)}" aria-hidden="true">${esc(o.charAt(0).toUpperCase())}<img src="${avatarUrl(o)}" alt="" loading="lazy" decoding="async" onerror="this.remove()"></span>`;
 
 /* ---------------- state (mirrored to the URL query) ---------------- */
 const state = { q: "", cat: "all", field: "all", over10k: false, featured: false, fav: false, strict: false, sort: "stars", view: "grid", shown: PAGE, shuffle: false };
@@ -163,21 +170,21 @@ const grid = () => $("#grid");
 function cardHTML(p) {
   const tokens = state.q.toLowerCase().split(/\s+/).filter(Boolean);
   const works = p.w.map((w) => `<span class="work-tag">${esc(w)}</span>`).join("");
+  const badges = (p.ov ? '<span class="badge badge-10k">万星+</span>' : "") + (p.ft ? '<span class="badge badge-off">官方</span>' : "");
   const faved = bookmarks.has(p.fn);
   return `<article class="card" tabindex="0" role="button" aria-label="查看 ${esc(p.fn)} 详情" data-fn="${esc(p.fn)}" style="--cat-color:${CAT_DOTS[p.c] || "#aeaeb2"}">
     <button type="button" class="fav-btn ${faved ? "faved" : ""}" data-fav="${esc(p.fn)}" aria-label="${faved ? "取消收藏" : "收藏"} ${esc(p.fn)}" aria-pressed="${faved}">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.7C6 16.6 3 13.4 3 9.9 3 7.2 5 5 7.7 5c1.7 0 3.3.9 4.3 2.4C13 5.9 14.6 5 16.3 5 19 5 21 7.2 21 9.9c0 3.5-3 6.7-9 10.8z"/></svg>
     </button>
     <div class="card-top">
-      <img class="avatar" src="${avatarUrl(p)}" alt="${esc(p.o)} 的头像" loading="lazy" decoding="async" onerror="this.style.visibility='hidden'">
+      ${avatarHTML(p.o)}
       <div class="card-id">
-        <div class="repo-name"><span class="owner-name">${esc(p.o)} /</span> ${highlight(p.n, tokens)}</div>
-        <div class="author-line">${esc(p.c)}</div>
+        <div class="repo-name" title="${esc(p.fn)}">${highlight(p.n, tokens)}</div>
+        <div class="author-line">${esc(p.o)} · ${esc(p.c)}</div>
       </div>
-      <span class="badges">${p.ov ? '<span class="badge badge-10k">万星+</span>' : ""}${p.ft ? '<span class="badge badge-off">官方</span>' : ""}</span>
     </div>
     <p class="desc">${highlight(p.d, tokens)}</p>
-    <div class="pro-line"><span class="field-chip">${esc(p.f)}</span>${works}</div>
+    <div class="pro-line">${badges}<span class="field-chip">${esc(p.f)}</span>${works}</div>
     <div class="card-foot">
       <span class="star">★ ${fmt(p.s)}</span>
       <span>⑂ ${fmt(p.k)}</span>
@@ -200,7 +207,7 @@ function render(force) {
     state.rendered = next;
   }
   $("#empty").hidden = list.length > 0;
-  $("#more-btn").style.display = list.length > state.shown ? "" : "none";
+  $("#more-btn").hidden = !(list.length > state.shown);
   const mode = state.q ? (state.strict ? " · 精确模式" : " · 容错搜索（按相关度）") : "";
   $("#result-line").textContent = `共找到 ${list.length.toLocaleString()} 个项目 · 已展示 ${(state.rendered || 0).toLocaleString()} 个${mode}`;
   renderActiveFilters();
@@ -216,17 +223,19 @@ function renderActiveFilters() {
   if (state.q) chips.push(["q", "搜索：" + state.q]);
   $("#active-filters").innerHTML = chips.map(([k, v]) =>
     `<button type="button" class="af-chip" data-clear="${k}" aria-label="清除筛选 ${esc(v)}">${esc(v)} ✕</button>`).join("");
-  document.querySelectorAll("[data-clear]").forEach((b) => b.addEventListener("click", () => {
-    const k = b.dataset.clear;
-    if (k === "cat") state.cat = "all";
-    if (k === "field") { state.field = "all"; $("#field-filter").value = "all"; }
-    if (k === "over10k") { state.over10k = false; $("#over10k-only").checked = false; }
-    if (k === "featured") { state.featured = false; $("#featured-only").checked = false; }
-    if (k === "fav") { state.fav = false; $("#fav-only").checked = false; }
-    if (k === "q") { state.q = ""; $("#search").value = ""; }
-    state.shown = PAGE; renderPills(); render(true);
-  }));
 }
+$("#active-filters").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-clear]");
+  if (!b) return;
+  const k = b.dataset.clear;
+  if (k === "cat") state.cat = "all";
+  if (k === "field") { state.field = "all"; $("#field-filter").value = "all"; }
+  if (k === "over10k") { state.over10k = false; $("#over10k-only").checked = false; }
+  if (k === "featured") { state.featured = false; $("#featured-only").checked = false; }
+  if (k === "fav") { state.fav = false; $("#fav-only").checked = false; }
+  if (k === "q") { state.q = ""; $("#search").value = ""; }
+  state.shown = PAGE; renderPills(); render(true);
+});
 function renderPills() {
   const counts = {};
   projects.forEach((p) => { counts[p.c] = (counts[p.c] || 0) + 1; });
@@ -236,9 +245,12 @@ function renderPills() {
     const label = c === "all" ? "全部" : c;
     return `<button type="button" aria-pressed="${state.cat === c}" class="pill ${state.cat === c ? "active" : ""}" data-cat="${esc(c)}">${esc(label)}<small>${n}</small></button>`;
   }).join("");
-  document.querySelectorAll(".pill").forEach((b) =>
-    b.addEventListener("click", () => { state.cat = b.dataset.cat; state.shown = PAGE; renderPills(); render(true); }));
 }
+$("#pills").addEventListener("click", (e) => {
+  const b = e.target.closest(".pill");
+  if (!b) return;
+  state.cat = b.dataset.cat; state.shown = PAGE; renderPills(); render(true);
+});
 function renderFieldOptions() {
   const counts = {};
   projects.forEach((p) => { counts[p.f] = (counts[p.f] || 0) + 1; });
@@ -290,7 +302,9 @@ let lastFocus = null;
 function openDrawer(p) {
   lastFocus = document.activeElement;
   const d = $("#drawer"), body = $("#drawer-body");
-  $("#drawer-avatar").src = avatarUrl(p);
+  const av = $("#drawer-avatar");
+  av.style.setProperty("--h", hue(p.o));
+  av.innerHTML = `${esc(p.o.charAt(0).toUpperCase())}<img src="${avatarUrl(p.o)}" alt="" decoding="async" onerror="this.remove()">`;
   $("#drawer-title").textContent = p.n;
   $("#drawer-owner").textContent = p.o + " · " + p.fn;
   const favBtn = $("#drawer-fav");
@@ -402,7 +416,7 @@ function renderPalette(q) {
     g.items.forEach((it) => {
       const idx = palItems.length; palItems.push(it);
       html += `<button type="button" class="pal-item ${idx === palSel ? "sel" : ""}" role="option" aria-selected="${idx === palSel}" data-pal="${idx}">
-        <span class="p-main"><span class="p-name">${esc(it.name)}</span><br><span class="p-sub">${esc(it.sub || "")}</span></span>
+        <span class="p-main"><span class="p-name">${esc(it.name)}</span><span class="p-sub">${esc(it.sub || "")}</span></span>
         <span class="p-meta">${esc(it.meta || "")}</span></button>`;
     });
   });
@@ -436,6 +450,7 @@ function closePalette() {
 }
 $("#palette-btn").addEventListener("click", openPalette);
 $("#kbd-btn").addEventListener("click", openPalette);
+$("#palette-close").addEventListener("click", closePalette);
 $("#palette-backdrop").addEventListener("click", (e) => { if (e.target === e.currentTarget) closePalette(); });
 $("#palette-input").addEventListener("input", (e) => { palSel = 0; renderPalette(e.target.value); });
 $("#palette-input").addEventListener("keydown", (e) => {
@@ -463,8 +478,7 @@ function applyTheme(pref) {
   const label = pref === "auto" ? "跟随系统" : pref === "dark" ? "深色" : "浅色";
   $("#theme-btn").setAttribute("aria-label", "切换主题（当前" + label + "）");
   const mc = document.querySelector('meta[name="theme-color"]');
-  if (mc) mc.content = dark ? "#0b0e14" : "#f5f5f7";
-  if (window.ScrollTrigger) setTimeout(() => window.ScrollTrigger.refresh(), 60);
+  if (mc) mc.content = dark ? "#000000" : "#f5f5f7";
 }
 $("#theme-btn").addEventListener("click", () => {
   const order = ["auto", "light", "dark"];
@@ -486,12 +500,14 @@ document.querySelectorAll("#topnav a").forEach((a) => a.addEventListener("click"
 }));
 function openSheet() {
   $("#toolbar").classList.add("sheet-open");
+  document.body.style.overflow = "hidden";
   const bd = $("#sheet-backdrop");
   bd.hidden = false;
   requestAnimationFrame(() => bd.classList.add("show"));
 }
 function closeSheet() {
   $("#toolbar").classList.remove("sheet-open");
+  document.body.style.overflow = "";
   const bd = $("#sheet-backdrop");
   bd.classList.remove("show");
   setTimeout(() => { bd.hidden = true; }, 200);
@@ -541,7 +557,7 @@ const sentinel = $("#load-sentinel");
 if (sentinel && "IntersectionObserver" in window) {
   new IntersectionObserver((entries) => {
     if (!entries.some((en) => en.isIntersecting)) return;
-    if (lastList && lastList.length > state.shown) { state.shown += PAGE; render(); }
+    if (lastList && lastList.length > state.shown && state.shown < autoMax()) { state.shown += PAGE; render(); }
   }, { rootMargin: "600px 0px" }).observe(sentinel);
 }
 $("#reset-btn").addEventListener("click", () => {
@@ -585,7 +601,7 @@ if (mqNarrow.addEventListener) mqNarrow.addEventListener("change", applyPlacehol
 applyPlaceholder();
 
 /* ---------------- data loading (1 request, with retry) ---------------- */
-async function fetchIndex(attempt) {
+async function fetchIndex() {
   const r = await fetch("data/index.json", { cache: "default" });
   if (!r.ok) throw new Error("HTTP " + r.status);
   return r.json();
@@ -594,7 +610,7 @@ async function init() {
   grid().innerHTML = Array.from({ length: 6 }, () => '<div class="skel" aria-hidden="true"></div>').join("");
   let data = null, lastErr = null;
   for (let i = 0; i < 3 && !data; i++) {
-    try { data = await fetchIndex(i); } catch (e) { lastErr = e; await new Promise((r) => setTimeout(r, 600 * (i + 1))); }
+    try { data = await fetchIndex(); } catch (e) { lastErr = e; await new Promise((r) => setTimeout(r, 600 * (i + 1))); }
   }
   if (!data) {
     grid().innerHTML = "";
@@ -620,6 +636,16 @@ async function init() {
   updateFavUI();
   applyTheme(document.documentElement.dataset.themePref || "auto");
   render(true);
-  if (window.ScrollTrigger) setTimeout(() => window.ScrollTrigger.refresh(), 300);
+  refreshLiveStars();
+  window.__atlasReady = true;
+  dispatchEvent(new Event("atlas:ready"));
+}
+/* the hero tiles and showcase deck ship static numbers in the HTML; refresh them from the data */
+function refreshLiveStars() {
+  const by = new Map(projects.map((p) => [p.fn, p]));
+  document.querySelectorAll("[data-stars-of]").forEach((el) => {
+    const p = by.get(el.dataset.starsOf);
+    if (p) el.textContent = (el.textContent.trim().startsWith("★") ? "★ " : "") + fmt(p.s);
+  });
 }
 init();
