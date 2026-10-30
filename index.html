@@ -33,18 +33,19 @@
   document.documentElement.dataset.themePref = pref;
 })();
 </script>
-<link rel="stylesheet" href="assets/style.css?v=4.0">
+<link rel="stylesheet" href="assets/style.css?v=4.1">
 </head>
 <body>
 <a class="skip" href="#explore">跳到项目库</a>
 
 <header class="topbar">
-  <div class="topbar-in">
+  <div class="topbar-in glass">
     <a class="brand" href="#home" aria-label="Atlas 首页">
       <img src="assets/logo.svg" alt="" width="30" height="30">
       <span>Atlas</span>
     </a>
     <nav class="topnav" aria-label="专区">
+      <span class="nav-pill" aria-hidden="true"></span>
       <a href="#home" data-nav="home">首页</a>
       <a href="#explore" data-nav="explore">探索</a>
       <a href="#ai" data-nav="ai">AI 导航</a>
@@ -72,7 +73,6 @@
   <!-- ============ 首页 ============ -->
   <section class="view" data-view="home" aria-labelledby="home-title">
     <div class="hero">
-      <div class="hero-glow" aria-hidden="true"></div>
       <p class="kicker">GitHub · Skills · MCP · Open Source</p>
       <h1 id="home-title">好项目，<br class="br-m">一图尽览。</h1>
       <p class="hero-desc">把 GitHub 上真正有用的项目集结在一起：<strong><span data-stat="over10k">5,320</span> 个 Star 过万的仓库</strong>，加上精选的 Agent Skills 与 MCP 工具，每个都标注作者、专业领域与工作技能。</p>
@@ -250,7 +250,8 @@
 </footer>
 
 <!-- mobile tab bar -->
-<nav class="tabbar" aria-label="专区">
+<nav class="tabbar glass" aria-label="专区">
+  <span class="nav-pill" aria-hidden="true"></span>
   <a href="#home" data-nav="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1z"/></svg><span>首页</span></a>
   <a href="#explore" data-nav="explore"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg><span>探索</span></a>
   <a href="#ai" data-nav="ai"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c.6 3.9 2.6 5.9 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.6 5.9-2.6 6.5-6.5z"/><path d="M18.5 15.5c.25 1.6 1 2.35 2.5 2.5-1.5.25-2.25 1-2.5 2.5-.25-1.5-1-2.25-2.5-2.5 1.5-.15 2.25-.9 2.5-2.5z"/></svg><span>AI 导航</span></a>
@@ -294,6 +295,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="assets/content.js?v=4.0" defer></script>
-<script src="assets/app.js?v=4.0" defer></script>
+<script src="assets/app.js?v=4.1" defer></script>
 </body>
 </html>
