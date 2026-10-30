@@ -2,7 +2,7 @@
 
 **集结 GitHub 上真正有用的项目：5,320 个万星级仓库，加上精选的 Agent Skills、MCP 服务器、AI 工具与开发神器。**
 
-🌐 在线访问：https://liveliho.github.io/skill-mcp-hub/
+🌐 在线访问：https://liveliho.github.io/atlas/
 
 ![收录项目](https://img.shields.io/badge/收录项目-6231-0071e3) ![万星项目](https://img.shields.io/badge/万星+项目-5320-0071e3) ![大类](https://img.shields.io/badge/大类-18类-34c759) ![专业领域](https://img.shields.io/badge/专业领域-16类-34c759)
 
