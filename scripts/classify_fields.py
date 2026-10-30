@@ -5,6 +5,7 @@ outrank generic ones (软件开发 / 人工智能) on ties via priority order.
 """
 import json, re
 from collections import Counter
+from projects_io import save_projects
 
 # (field, priority, {keyword: work_skill_or_None})
 RULES = [
@@ -114,6 +115,7 @@ DEFAULT_SKILLS = {
 }
 
 import re as _re
+
 def kw_in(kw, text):
     """Short alphabetic keywords need word boundaries (law != openclaw, ui != guide);
     longer ones need a trailing boundary (paper != paperclip) but may be suffixes (security in cybersecurity)."""
@@ -201,7 +203,7 @@ def main():
         field, work = classify(p)
         p["field"] = field
         p["work_skills"] = work
-    json.dump(projects, open("data/projects.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    save_projects(projects)
     print("total:", len(projects))
     print(Counter(p["field"] for p in projects))
     # QA samples

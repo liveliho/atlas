@@ -3,9 +3,10 @@
 Lower star floor for niche professional skills (>=30), still: no forks, not archived, clear description.
 Skill signal required: 'skill' in name or description.
 """
-import subprocess, json, sys, time
+import json, sys, time
 
-GH = "/opt/hatch/bin/github"
+from gh_search import search
+from projects_io import save_projects
 
 QUERIES = [
     # broad skill pools, multiple pages
@@ -40,19 +41,6 @@ QUERIES = [
     ("skills in:name topic:claude stars:>30", 30, 2),
     ("skill in:name stars:>300", 300, 2),
 ]
-
-def search(query, per_page=50, page=1):
-    args = {"query": query, "perPage": per_page, "page": page, "sort": "stars", "order": "desc", "minimal_output": True}
-    cmd = [GH, "call-read-tool", "--name", "search_repositories", "--arguments-json", json.dumps(args)]
-    out = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-    if out.returncode != 0:
-        print(f"FAIL {query} p{page}", file=sys.stderr); return []
-    try:
-        d = json.loads(out.stdout)
-        inner = json.loads(d["result"]["content"][0]["text"])
-        return inner.get("items", [])
-    except Exception as e:
-        print(f"PARSE FAIL {query} p{page}: {e}", file=sys.stderr); return []
 
 def main():
     projects = json.load(open("data/projects.json", encoding="utf-8"))
@@ -95,7 +83,7 @@ def main():
     projects = sorted(by_key.values(), key=lambda x: x["stars"], reverse=True)
     from collections import Counter
     print("\nadded:", added, "total:", len(projects), Counter(p["category"] for p in projects))
-    json.dump(projects, open("data/projects.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    save_projects(projects)
 
 if __name__ == "__main__":
     main()

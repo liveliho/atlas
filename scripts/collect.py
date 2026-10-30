@@ -3,9 +3,10 @@
 Dedupes, filters forks/archived/low quality, assigns category.
 Output: data/projects.json
 """
-import subprocess, json, sys, time, re
+import json, sys, time, re
 
-GH = "/opt/hatch/bin/github"
+from gh_search import search
+from projects_io import save_projects
 
 QUERIES = [
     # (query, category, min_stars)
@@ -35,21 +36,6 @@ QUERIES = [
 
 # Priority for category when a repo appears in multiple buckets
 CAT_PRIORITY = {"MCP": 0, "Skills": 1, "AI Agents": 2, "Learning": 3, "Dev Tools": 4}
-
-def search(query, per_page=50, page=1):
-    args = {"query": query, "perPage": per_page, "page": page, "sort": "stars", "order": "desc", "minimal_output": True}
-    cmd = [GH, "call-read-tool", "--name", "search_repositories", "--arguments-json", json.dumps(args)]
-    out = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-    if out.returncode != 0:
-        print(f"FAIL {query}: {out.stderr[:200]}", file=sys.stderr)
-        return []
-    try:
-        d = json.loads(out.stdout)
-        inner = json.loads(d["result"]["content"][0]["text"])
-        return inner.get("items", [])
-    except Exception as e:
-        print(f"PARSE FAIL {query}: {e}", file=sys.stderr)
-        return []
 
 def main():
     collected = {}  # full_name lower -> record
@@ -99,8 +85,7 @@ def main():
     print(f"\nTOTAL unique useful projects: {len(projects)}")
     from collections import Counter
     print(Counter(p["category"] for p in projects))
-    with open("data/projects.json", "w", encoding="utf-8") as f:
-        json.dump(projects, f, ensure_ascii=False, indent=2)
+    save_projects(projects)
 
 if __name__ == "__main__":
     main()

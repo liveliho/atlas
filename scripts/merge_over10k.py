@@ -11,9 +11,10 @@ Output overwrites data/projects.json (sorted by stars desc).
 """
 import json, os, sys, importlib.util
 from collections import Counter
+from projects_io import save_projects
 
 ROOT = os.path.expanduser("~/workspace/skill-mcp-hub")
-NEW_PATH = os.path.expanduser("~/workspace/github-top-projects-10000/data/projects_all.json")
+NEW_PATH = os.environ.get("ATLAS_OVER10K_JSON") or os.path.expanduser("~/workspace/github-top-projects-10000/data/projects_all.json")
 BUILD_DOCS = os.path.expanduser("~/workspace/github-top-projects-10000/scripts/build_docs.py")
 
 def load_mod(name, path):
@@ -64,8 +65,7 @@ for p in projects:
     p.setdefault("field", "其他专业")
     p.setdefault("work_skills", [])
 
-json.dump(projects, open(os.path.join(ROOT, "data/projects.json"), "w", encoding="utf-8"),
-          ensure_ascii=False, indent=2)
+save_projects(projects)
 print("old:", len(old), "new:", len(new), "old_only:", old_only)
 print("TOTAL merged:", len(projects))
 print("over10k true:", sum(1 for p in projects if p["over10k"]))

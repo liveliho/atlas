@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Pass 2: add official/essential seeds, then reclassify by name+description (not topic spam)."""
-import subprocess, json, sys, time, re
+import json, sys, time, re
 
-GH = "/opt/hatch/bin/github"
+from gh_search import fetch_repo
+from projects_io import save_projects
 
 SEED_REPOS = [
     "modelcontextprotocol/servers","modelcontextprotocol/inspector","modelcontextprotocol/registry",
@@ -19,24 +20,6 @@ SEED_REPOS = [
     "microsoft/vscode","vercel/next.js","facebook/react","vitejs/vite","tailwindlabs/tailwindcss",
     "docker/awesome-compose","rupa/z","ohmyzsh/ohmyzsh",
 ]
-
-def fetch_repo(full):
-    args = {"query": f"repo:{full}", "perPage": 3}
-    cmd = [GH, "call-read-tool", "--name", "search_repositories", "--arguments-json", json.dumps(args)]
-    out = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-    if out.returncode != 0:
-        return None
-    try:
-        d = json.loads(out.stdout)
-        inner = json.loads(d["result"]["content"][0]["text"])
-        items = inner.get("items", [])
-        for it in items:
-            if it["full_name"].lower() == full.lower():
-                return it
-        return items[0] if items else None
-    except Exception as e:
-        print("parse fail", full, e, file=sys.stderr)
-        return None
 
 def classify(p):
     name = p["name"].lower()
@@ -109,7 +92,7 @@ def main():
     from collections import Counter
     print("added seeds:", added)
     print("total:", len(projects), Counter(p["category"] for p in projects))
-    json.dump(projects, open("data/projects.json","w",encoding="utf-8"), ensure_ascii=False, indent=2)
+    save_projects(projects)
 
 if __name__ == "__main__":
     main()
