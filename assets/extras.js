@@ -8,6 +8,13 @@
 (function () {
   "use strict";
 
+  /* the letter tile shows until a real icon arrives, so a slow or blocked
+     icon CDN (common on mainland networks) never leaves an empty box */
+  window.atlasIconLoad = function (img) {
+    var box = img.closest(".icon-box");
+    if (box) box.classList.add("has-icon");
+  };
+
   window.atlasIconError = function (img) {
     var fb = img.getAttribute("data-fb");
     if (fb) {
@@ -27,7 +34,7 @@
     var fb = sources[1] ? ' data-fb="' + sources[1] + '"' : "";
     return (
       '<span class="icon-box" aria-hidden="true">' +
-      '<img src="' + first + '"' + fb + ' alt="" loading="lazy" decoding="async" onerror="atlasIconError(this)">' +
+      '<img src="' + first + '"' + fb + ' alt="" loading="lazy" decoding="async" onload="atlasIconLoad(this)" onerror="atlasIconError(this)">' +
       '<span class="icon-letter" style="background:' + it.color + '">' + it.letter + "</span>" +
       "</span>"
     );

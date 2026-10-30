@@ -301,6 +301,7 @@ footer p { margin: 4px 0; }
   .primary-btn:hover { opacity: 0.88; }
   .topnav a:hover { background: rgba(120, 120, 128, 0.14); }
 }
+.topnav a.active { color: var(--ink); background: rgba(120, 120, 128, 0.14); font-weight: 600; }
 
 /* ---------- touch devices: lighter glass (GPU-friendly scrolling) ----------
    Cards & method cards drop backdrop-filter and one shadow layer;
@@ -409,11 +410,13 @@ footer p { margin: 4px 0; }
   display: grid; place-items: center; overflow: hidden; position: relative;
 }
 :root[data-theme="dark"] .icon-box { background: rgba(255, 255, 255, 0.92); }
-.icon-box img { width: 27px; height: 27px; display: block; }
+.icon-box img { width: 27px; height: 27px; display: block; position: relative; z-index: 1; opacity: 0; transition: opacity 0.2s ease-out; }
 .icon-letter {
-  position: absolute; inset: 0; display: none;
+  position: absolute; inset: 0; display: grid;
   place-items: center; color: #fff; font-weight: 700; font-size: 20px;
 }
+.icon-box.has-icon img { opacity: 1; }
+.icon-box.has-icon .icon-letter { display: none; }
 .icon-box.no-icon img { display: none; }
 .icon-box.no-icon .icon-letter { display: grid; }
 .xcard-main { min-width: 0; flex: 1; }
@@ -794,3 +797,17 @@ footer p { margin: 4px 0; }
   .explore-tools { gap: 8px; }
   .topnav { background: var(--glass-strong); }
 }
+
+/* v3.2: toast + share button */
+.toast {
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 120;
+  transform: translate(-50%, 12px); opacity: 0; pointer-events: none;
+  max-width: min(92vw, 520px); padding: 11px 18px; border-radius: var(--radius-pill);
+  background: var(--glass-strong); color: var(--ink); border: 1px solid var(--glass-edge);
+  -webkit-backdrop-filter: var(--blur-l3); backdrop-filter: var(--blur-l3);
+  box-shadow: var(--shadow-lift); font-size: 14.5px; overflow-wrap: anywhere;
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.drawer-cta .ghost-btn { flex: 0 0 auto; }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }

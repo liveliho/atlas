@@ -13,6 +13,7 @@ const CAT_DOTS = {
   "移动与桌面应用": "#70d7ff", "游戏与娱乐": "#da8fff", "其他实用项目": "#aeaeb2",
 };
 const PAGE = 48;
+const AUTO_PAGES = 3; /* auto-load at most this many pages before asking, so the sections below the grid stay reachable */
 const $ = (s) => document.querySelector(s);
 const fmt = (n) => n >= 1000 ? (n / 1000).toFixed(n >= 100000 ? 0 : 1).replace(/\.0$/, "") + "k" : String(n);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -21,7 +22,8 @@ const repoUrl = (p) => "https://github.com/" + p.fn;
 const avatarUrl = (p) => "https://github.com/" + p.o + ".png?size=96";
 
 /* ---------------- state (mirrored to the URL query) ---------------- */
-const state = { q: "", cat: "all", field: "all", over10k: false, featured: false, fav: false, strict: false, sort: "stars", view: "grid", shown: PAGE, shuffle: false };
+const state = { q: "", cat: "all", field: "all", over10k: false, featured: false, fav: false, strict: false, sort: "stars", view: "grid", shown: PAGE, shuffle: false, p: "" };
+let autoBudget = AUTO_PAGES;
 let projects = [];
 let generatedAt = "";
 let lastList = null, lastSig = "";
@@ -41,8 +43,10 @@ function syncUrl() {
   if (state.strict) q.set("strict", "1");
   if (state.sort !== "stars") q.set("sort", state.sort);
   if (state.view !== "grid") q.set("view", state.view);
+  if (state.p) q.set("p", state.p);
   const s = q.toString();
-  history.replaceState(null, "", s ? "?" + s : location.pathname);
+  /* keep the #section: dropping it broke reload / sharing of AI 导航 & 社区 links */
+  history.replaceState(null, "", (s ? "?" + s : location.pathname) + location.hash);
 }
 function readUrl() {
   const q = new URLSearchParams(location.search);
@@ -55,8 +59,15 @@ function readUrl() {
   state.strict = q.get("strict") === "1";
   state.sort = q.get("sort") || "stars";
   state.view = q.get("view") || state.view;
+  state.p = q.get("p") || "";
 }
-window.addEventListener("popstate", () => { readUrl(); applyStateToControls(); state.shown = PAGE; renderPills(); render(true); });
+window.addEventListener("popstate", () => {
+  /* back/forward between #sections must not rebuild (and shrink) the grid */
+  const before = stateSig();
+  readUrl();
+  if (stateSig() !== before) { applyStateToControls(); state.shown = PAGE; autoBudget = AUTO_PAGES; renderPills(); render(true); }
+  goToSection(location.hash, false);
+});
 
 /* ---------------- search core (shared) ---------------- */
 function buildSearchText(p) {
@@ -188,7 +199,7 @@ function cardHTML(p) {
 }
 function render(force) {
   const sig = stateSig();
-  if (force || sig !== lastSig) { lastList = filtered(); lastSig = sig; state.rendered = 0; grid().innerHTML = ""; }
+  if (force || sig !== lastSig) { lastList = filtered(); lastSig = sig; state.rendered = 0; autoBudget = AUTO_PAGES; grid().innerHTML = ""; }
   const list = lastList;
   const g = grid();
   g.classList.toggle("list", state.view === "list");
@@ -200,7 +211,9 @@ function render(force) {
     state.rendered = next;
   }
   $("#empty").hidden = list.length > 0;
-  $("#more-btn").style.display = list.length > state.shown ? "" : "none";
+  const left = list.length - state.shown;
+  $("#more-btn").style.display = left > 0 ? "" : "none";
+  $("#more-btn").textContent = `加载更多项目（还有 ${left.toLocaleString()} 个）`;
   const mode = state.q ? (state.strict ? " · 精确模式" : " · 容错搜索（按相关度）") : "";
   $("#result-line").textContent = `共找到 ${list.length.toLocaleString()} 个项目 · 已展示 ${(state.rendered || 0).toLocaleString()} 个${mode}`;
   renderActiveFilters();
@@ -213,6 +226,8 @@ function renderActiveFilters() {
   if (state.over10k) chips.push(["over10k", "万星+"]);
   if (state.featured) chips.push(["featured", "官方"]);
   if (state.fav) chips.push(["fav", "我的收藏"]);
+  if (state.strict) chips.push(["strict", "精确模式"]);
+  if (state.shuffle) chips.push(["shuffle", "随机顺序"]);
   if (state.q) chips.push(["q", "搜索：" + state.q]);
   $("#active-filters").innerHTML = chips.map(([k, v]) =>
     `<button type="button" class="af-chip" data-clear="${k}" aria-label="清除筛选 ${esc(v)}">${esc(v)} ✕</button>`).join("");
@@ -223,6 +238,8 @@ function renderActiveFilters() {
     if (k === "over10k") { state.over10k = false; $("#over10k-only").checked = false; }
     if (k === "featured") { state.featured = false; $("#featured-only").checked = false; }
     if (k === "fav") { state.fav = false; $("#fav-only").checked = false; }
+    if (k === "strict") { state.strict = false; $("#strict-only").checked = false; }
+    if (k === "shuffle") state.shuffle = false;
     if (k === "q") { state.q = ""; $("#search").value = ""; }
     state.shown = PAGE; renderPills(); render(true);
   }));
@@ -281,14 +298,14 @@ function toggleBookmark(fn) {
     b.classList.toggle("faved", on); b.setAttribute("aria-pressed", on);
   });
   const df = $("#drawer-fav");
-  if (df && df.dataset.fn === fn) df.classList.toggle("faved", bookmarks.has(fn));
+  if (df && df.dataset.fn === fn) { df.classList.toggle("faved", bookmarks.has(fn)); df.setAttribute("aria-pressed", bookmarks.has(fn)); }
   if (state.fav) { state.shown = Math.max(state.shown, PAGE); render(true); }
 }
 
 /* ---------------- detail drawer ---------------- */
 let lastFocus = null;
-function openDrawer(p) {
-  lastFocus = document.activeElement;
+function openDrawer(p, keepFocus) {
+  if (!keepFocus) lastFocus = document.activeElement;
   const d = $("#drawer"), body = $("#drawer-body");
   $("#drawer-avatar").src = avatarUrl(p);
   $("#drawer-title").textContent = p.n;
@@ -318,13 +335,20 @@ function openDrawer(p) {
     </div>
     <div class="drawer-cta">
       ${url ? `<a class="primary-btn" href="${url}" target="_blank" rel="noopener">在 GitHub 打开 ↗</a>` : ""}
+      <button type="button" class="ghost-btn" id="drawer-share">复制分享链接</button>
     </div>
     ${related.length ? `<h4 class="related-title">相关项目</h4>` + related.map((r) =>
       `<button type="button" class="related-item" data-related="${esc(r.fn)}"><span class="r-name">${esc(r.fn)}</span><span class="r-stars">★ ${fmt(r.s)}</span></button>`).join("") : ""}`;
   body.querySelectorAll("[data-related]").forEach((b) => b.addEventListener("click", () => {
     const rp = projects.find((x) => x.fn === b.dataset.related);
-    if (rp) { openDrawer(rp); body.scrollTop = 0; }
+    if (rp) { openDrawer(rp, true); body.scrollTop = 0; }
   }));
+  $("#drawer-share").addEventListener("click", () => {
+    const link = location.origin + location.pathname + "?p=" + encodeURIComponent(p.fn);
+    copyText(link).then((ok) => toast(ok ? "链接已复制，发给朋友直接打开这个项目" : link));
+  });
+  state.p = p.fn; syncUrl();
+  if (keepFocus) return;
   const bd = $("#drawer-backdrop");
   bd.hidden = false; d.hidden = false;
   requestAnimationFrame(() => { bd.classList.add("show"); d.classList.add("open"); });
@@ -333,6 +357,7 @@ function openDrawer(p) {
 }
 function closeDrawer() {
   const d = $("#drawer"), bd = $("#drawer-backdrop");
+  state.p = ""; syncUrl();
   d.classList.remove("open"); bd.classList.remove("show");
   document.body.style.overflow = "";
   setTimeout(() => { d.hidden = true; bd.hidden = true; }, 300);
@@ -448,6 +473,16 @@ $("#palette-input").addEventListener("keydown", (e) => {
   } else if (e.key === "Enter") { e.preventDefault(); activatePal(palSel); }
 });
 document.addEventListener("keydown", (e) => {
+  /* "/" jumps to the explore search, like GitHub */
+  if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    const tag = (e.target.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select" || e.target.isContentEditable) return;
+    if (!$("#drawer").hidden || !$("#palette-backdrop").hidden) return;
+    e.preventDefault();
+    $("#search").focus({ preventScroll: true });
+    $("#hero-search").scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
     e.preventDefault();
     if ($("#palette-backdrop").hidden) openPalette(); else closePalette();
@@ -500,6 +535,109 @@ $("#sheet-btn").addEventListener("click", openSheet);
 $("#sheet-done").addEventListener("click", closeSheet);
 $("#sheet-backdrop").addEventListener("click", closeSheet);
 
+/* ---------------- in-page navigation ----------------
+   One controller for every #section link (top nav, brand, deep links, back /
+   forward). While a jump is in flight auto-load is paused so the grid cannot
+   push the target away, and the landing is re-checked once the scroll ends. */
+let navUntil = 0, navTimer = null;
+const navigating = () => performance.now() < navUntil;
+function scrollMargin(el) { return parseFloat(getComputedStyle(el).scrollMarginTop) || 0; }
+function stopNav() { navUntil = 0; clearTimeout(navTimer); }
+["wheel", "touchstart", "keydown"].forEach((ev) => window.addEventListener(ev, (e) => {
+  if (ev === "keydown" && !["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(e.key)) return;
+  if (navigating()) stopNav();
+}, { passive: true }));
+function goToSection(hash, smooth) {
+  let el = null;
+  try { el = hash && hash.length > 1 ? document.getElementById(decodeURIComponent(hash.slice(1))) : null; } catch (e) {}
+  if (hash && hash.length > 1 && !el) return false;
+  stopNav();
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const behavior = smooth && !reduce ? "smooth" : "instant";
+  const targetY = () => el ? Math.max(0, el.getBoundingClientRect().top + window.scrollY - scrollMargin(el)) : 0;
+  navUntil = performance.now() + 4000;
+  window.scrollTo({ top: targetY(), behavior });
+  /* re-land until the target holds still (late images, ScrollTrigger refresh) */
+  let tries = 0, stable = 0, lastY = -1;
+  const check = () => {
+    if (!navigating()) return;
+    const off = el ? el.getBoundingClientRect().top - scrollMargin(el) : window.scrollY;
+    const settledScroll = Math.abs(window.scrollY - lastY) < 2;
+    lastY = window.scrollY;
+    if (settledScroll) {
+      if (Math.abs(off) > 6 && window.scrollY + innerHeight < document.documentElement.scrollHeight - 2) {
+        window.scrollTo({ top: targetY(), behavior: "instant" }); stable = 0;
+      } else stable++;
+    }
+    if (stable >= 3 || ++tries > 40) { navUntil = performance.now() + 400; return; }
+    navTimer = setTimeout(check, 150);
+  };
+  navTimer = setTimeout(check, behavior === "smooth" ? 250 : 60);
+  return true;
+}
+document.addEventListener("click", (e) => {
+  if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  const a = e.target.closest('a[href^="#"]');
+  if (!a) return;
+  const hash = a.getAttribute("href");
+  if (hash !== "#" && !document.getElementById(hash.slice(1))) return;
+  e.preventDefault();
+  const url = location.pathname + location.search + (hash === "#" ? "" : hash);
+  if (url !== location.pathname + location.search + location.hash) history.pushState(null, "", url);
+  goToSection(hash === "#" ? "" : hash, true);
+});
+window.addEventListener("hashchange", () => goToSection(location.hash, true));
+if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+
+/* scroll-spy: highlight the section you are in; keep the #hash in sync so a
+   reload or a shared link lands in the same 专区 */
+const spyIds = ["explore", "ai-nav", "community", "reading", "method"];
+const spyLinks = new Map(spyIds.map((id) => [id, document.querySelector(`#topnav a[href="#${id}"]`)]));
+const spyOn = new Set();
+let spyHash = false; /* off until the initial deep-link landing is done */
+function setActive(id) {
+  spyLinks.forEach((a, k) => {
+    if (!a) return;
+    a.classList.toggle("active", k === id);
+    if (k === id) a.setAttribute("aria-current", "location"); else a.removeAttribute("aria-current");
+  });
+  if (!spyHash || navigating()) return;
+  const want = id ? "#" + id : "";
+  if (location.hash !== want) history.replaceState(null, "", location.pathname + location.search + want);
+}
+if ("IntersectionObserver" in window) {
+  const spy = new IntersectionObserver((entries) => {
+    entries.forEach((en) => { if (en.isIntersecting) spyOn.add(en.target.id); else spyOn.delete(en.target.id); });
+    setActive(spyIds.find((id) => spyOn.has(id)) || "");
+  }, { rootMargin: "-40% 0px -55% 0px" });
+  spyIds.forEach((id) => { const el = document.getElementById(id); if (el) spy.observe(el); });
+}
+
+/* small helpers: clipboard + toast */
+function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).then(() => true, () => false);
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand("copy"); ta.remove();
+    return Promise.resolve(ok);
+  } catch (e) { return Promise.resolve(false); }
+}
+let toastTimer = null;
+function toast(msg) {
+  let t = $("#toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "toast"; t.className = "toast"; t.setAttribute("role", "status"); t.setAttribute("aria-live", "polite");
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+}
+
 /* ---------------- controls ---------------- */
 function applyStateToControls() {
   $("#search").value = state.q;
@@ -536,13 +674,17 @@ function setView(v) {
   try { localStorage.setItem("atlas.view", v); } catch (e) {}
   applyStateToControls(); render();
 }
-$("#more-btn").addEventListener("click", () => { state.shown += PAGE; render(); });
+$("#more-btn").addEventListener("click", () => { state.shown += PAGE; autoBudget = AUTO_PAGES; render(); });
+/* auto-load only when the sentinel approaches from below (never when it sits
+   above the viewport, i.e. while you read AI 导航 / 社区), never during an
+   in-page jump, and only a few pages at a time — after that the button asks. */
 const sentinel = $("#load-sentinel");
 if (sentinel && "IntersectionObserver" in window) {
   new IntersectionObserver((entries) => {
     if (!entries.some((en) => en.isIntersecting)) return;
-    if (lastList && lastList.length > state.shown) { state.shown += PAGE; render(); }
-  }, { rootMargin: "600px 0px" }).observe(sentinel);
+    if (navigating() || autoBudget <= 0) return;
+    if (lastList && lastList.length > state.shown) { autoBudget--; state.shown += PAGE; render(); }
+  }, { rootMargin: "0px 0px 600px 0px" }).observe(sentinel);
 }
 $("#reset-btn").addEventListener("click", () => {
   clearTimeout(debounce);
@@ -620,6 +762,16 @@ async function init() {
   updateFavUI();
   applyTheme(document.documentElement.dataset.themePref || "auto");
   render(true);
-  if (window.ScrollTrigger) setTimeout(() => window.ScrollTrigger.refresh(), 300);
+  const deep = state.p && projects.find((x) => x.fn === state.p);
+  if (state.p && !deep) { state.p = ""; syncUrl(); }
+  /* the browser's own #hash jump happened before the grid existed, so it
+     landed short — land again once layout (and the pinned showcase) settle */
+  const land = () => {
+    if (location.hash) goToSection(location.hash, false);
+    if (deep) openDrawer(deep);
+    setTimeout(() => { spyHash = true; }, 1200);
+  };
+  if (window.ScrollTrigger) setTimeout(() => { window.ScrollTrigger.refresh(); land(); }, 300);
+  else requestAnimationFrame(land);
 }
 init();

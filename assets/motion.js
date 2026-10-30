@@ -36,7 +36,7 @@
   if (listEl) {
     listEl.innerHTML = TOP5.map(function (p, i) {
       return '<a class="xcard" href="https://github.com/' + p.full + '" target="_blank" rel="noopener">' +
-        '<span class="icon-box"><img src="https://github.com/' + p.owner + '.png?size=96" alt="" loading="lazy" decoding="async" onerror="this.parentNode.classList.add(\'no-icon\')">' +
+        '<span class="icon-box"><img src="https://github.com/' + p.owner + '.png?size=96" alt="" loading="lazy" decoding="async" onload="this.parentNode.classList.add(\'has-icon\')" onerror="this.parentNode.classList.add(\'no-icon\')">' +
         '<span class="icon-letter" style="background:#0071e3">' + p.name.charAt(0).toUpperCase() + "</span></span>" +
         '<span class="xcard-main"><span class="xcard-name">' + p.full + '</span>' +
         '<span class="xcard-org">' + p.stars + " · " + p.meta.replace("⑂ ", "Fork ") + "</span>" +
@@ -88,43 +88,8 @@
     onScroll();
   }
 
-  /* ---------- anchor stabiliser ----------
-     The project grid auto-loads while you glide past it, which pushes the
-     sections below it further down mid-jump; a native anchor jump then lands
-     short. After a nav click, watch the target: if layout growth moves it,
-     re-land instantly until it settles. Any manual wheel/touch cancels. */
-  document.querySelectorAll('a[href^="#"]').forEach(function (a) {
-    a.addEventListener("click", function (e) {
-      var id = a.getAttribute("href");
-      if (!id || id.length < 2) return;
-      var target = document.querySelector(id);
-      if (!target) return;
-      e.preventDefault();
-      if (history.pushState) history.pushState(null, "", id);
-      target.scrollIntoView({ behavior: "smooth" });
-      var lastTop = null, stable = 0, tries = 0, cancelled = false;
-      var cancel = function () { cancelled = true; };
-      window.addEventListener("wheel", cancel, { passive: true, once: true });
-      window.addEventListener("touchstart", cancel, { passive: true, once: true });
-      var iv = setInterval(function () {
-        if (cancelled) { clearInterval(iv); return; }
-        tries++;
-        var top = target.getBoundingClientRect().top;
-        var margin = parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
-        if (lastTop !== null && Math.abs(top - lastTop) < 4) {
-          stable++;
-        } else {
-          stable = 0;
-          if (tries > 3 && lastTop !== null && Math.abs(top - margin) > 8) {
-            target.scrollIntoView({ behavior: "instant", block: "start" });
-            top = target.getBoundingClientRect().top;
-          }
-        }
-        lastTop = top;
-        if (stable >= 3 || tries > 24) clearInterval(iv);
-      }, 300);
-    });
-  });
+  /* in-page #section jumps are handled by app.js (goToSection): it pauses
+     the grid's auto-load during a jump and re-checks the landing. */
 
   /* ---------- everything below needs GSAP + ScrollTrigger ---------- */
   if (!window.gsap || !window.ScrollTrigger) return;
@@ -135,48 +100,68 @@
   /* v3 refactor: per-char title splitting was removed (decorative cost,
      accessibility noise); headings now reveal as single blocks in reveals(). */
 
-  /* dynamic project cards: batch entrance that survives app.js re-renders */
-  var cardTriggers = [];
-  function killCardTriggers() {
-    cardTriggers.forEach(function (t) { t.kill(); });
-    cardTriggers = [];
+  /* entrance reveals. Only elements that are new since the last pass get
+     hidden, and only if they are still below the fold; any toggle — enter,
+     enter-back, or being skipped past by a jump — reveals them. (The old
+     version re-hid every card on each append and only revealed on onEnter,
+     so cards above the viewport or jumped over stayed invisible.) */
+  function revealer(selector, from, to) {
+    var triggers = [];
+    function show(els) {
+      els = els.filter(function (el) { return !el.hasAttribute("data-shown"); });
+      if (!els.length) return;
+      els.forEach(function (el) { el.setAttribute("data-shown", ""); });
+      gsap.to(els, to);
+    }
+    function scan() {
+      triggers = triggers.filter(function (t) {
+        var el = t.trigger;
+        if (el && el.isConnected && !el.hasAttribute("data-shown")) return true;
+        t.kill();
+        return false;
+      });
+      var fresh = gsap.utils.toArray(selector).filter(function (el) { return !el.hasAttribute("data-seen"); });
+      if (!fresh.length) return;
+      var fold = window.innerHeight * 0.96;
+      var below = [];
+      fresh.forEach(function (el) {
+        el.setAttribute("data-seen", "");
+        if (el.getBoundingClientRect().top > fold) below.push(el);
+        else el.setAttribute("data-shown", "");
+      });
+      if (!below.length) return;
+      gsap.set(below, from);
+      triggers = triggers.concat(ScrollTrigger.batch(below, {
+        start: "top 96%",
+        onEnter: show, onEnterBack: show, onLeave: show
+      }));
+    }
+    function reset() {
+      triggers.forEach(function (t) { t.kill(); });
+      triggers = [];
+      gsap.utils.toArray(selector).forEach(function (el) {
+        if (!el.hasAttribute("data-shown")) gsap.set(el, { clearProps: "opacity,transform" });
+        el.removeAttribute("data-seen");
+        el.removeAttribute("data-shown");
+      });
+    }
+    return { scan: scan, reset: reset };
   }
-  function setupDynamicCards() {
-    var cards = gsap.utils.toArray("#grid .card");
-    if (!cards.length) return;
-    killCardTriggers();
-    gsap.set(cards, { opacity: 0, y: 18 });
-    cardTriggers = ScrollTrigger.batch(cards, {
-      start: "top 96%",
-      once: true,
-      onEnter: function (els) {
-        gsap.to(els, { opacity: 1, y: 0, duration: 0.5, stagger: 0.03, ease: "power3.out", overwrite: true, clearProps: "transform" });
-      }
-    });
-  }
-  function setupStaticCards() {
-    var els = gsap.utils.toArray(".xcard, .method-card");
-    if (!els.length) return;
-    gsap.set(els, { opacity: 0, y: 22 });
-    ScrollTrigger.batch(els, {
-      start: "top 94%",
-      once: true,
-      onEnter: function (b) {
-        gsap.to(b, { opacity: 1, y: 0, duration: 0.6, stagger: 0.05, ease: "power3.out", overwrite: true, clearProps: "transform" });
-      }
-    });
-  }
+  var cardReveal = revealer("#grid .card", { opacity: 0, y: 18 },
+    { opacity: 1, y: 0, duration: 0.5, stagger: 0.03, ease: "power3.out", overwrite: true, clearProps: "transform" });
+  var staticReveal = revealer(".xcard, .method-card", { opacity: 0, y: 22 },
+    { opacity: 1, y: 0, duration: 0.6, stagger: 0.05, ease: "power3.out", overwrite: true, clearProps: "transform" });
   function reveals() {
     gsap.utils.toArray(".band-head .kicker, .band-sub, .method-sub, .sub-head, .group-title, .showcase-sub").forEach(function (el) {
       gsap.from(el, {
         y: 28, autoAlpha: 0, duration: 0.85, ease: "power3.out",
-        scrollTrigger: { trigger: el, start: "top 88%", once: true }
+        scrollTrigger: { trigger: el, start: "top 88%", toggleActions: "play complete complete complete" }
       });
     });
     gsap.utils.toArray(".band-head h2, .method h2, .showcase-title").forEach(function (h) {
       gsap.from(h, {
         y: 30, autoAlpha: 0, duration: 0.8, ease: "power3.out",
-        scrollTrigger: { trigger: h, start: "top 88%", once: true }
+        scrollTrigger: { trigger: h, start: "top 88%", toggleActions: "play complete complete complete" }
       });
     });
   }
@@ -222,15 +207,17 @@
     heroScrub(1);
     pinScene();
     reveals();
-    setupStaticCards();
-    return function () { tier = null; killCardTriggers(); };
+    staticReveal.scan();
+    cardReveal.scan();
+    return function () { tier = null; cardReveal.reset(); staticReveal.reset(); };
   });
   mm.add("(max-width: 767.5px) and (prefers-reduced-motion: no-preference)", function () {
     tier = "mobile";
     heroScrub(0.55);
     reveals();
-    setupStaticCards();
-    return function () { tier = null; killCardTriggers(); };
+    staticReveal.scan();
+    cardReveal.scan();
+    return function () { tier = null; cardReveal.reset(); staticReveal.reset(); };
   });
 
   /* app.js re-renders #grid on data load / filter / auto-load: re-batch + refresh */
@@ -240,7 +227,7 @@
     new MutationObserver(function () {
       clearTimeout(refreshTimer);
       refreshTimer = setTimeout(function () {
-        if (tier) setupDynamicCards();
+        if (tier) cardReveal.scan();
         ScrollTrigger.refresh();
       }, 60);
     }).observe(grid, { childList: true });

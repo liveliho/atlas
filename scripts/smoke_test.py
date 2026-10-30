@@ -1,14 +1,15 @@
-import json, subprocess, time
+import json, os, subprocess, tempfile, time
 from playwright.sync_api import sync_playwright
 
-srv = subprocess.Popen(["python3", "-m", "http.server", "8902", "--directory", "/home/hatch/workspace/skill-mcp-hub"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+srv = subprocess.Popen(["python3", "-m", "http.server", "8902", "--directory", ROOT], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(1.2)
 BASE = "http://localhost:8902/"
-OUT = "/home/hatch/workspace/skill-mcp-hub//tmp"
+OUT = os.environ.get("SMOKE_OUT") or tempfile.mkdtemp(prefix="atlas-smoke-")
 res, errs = {}, []
 try:
     with sync_playwright() as pw:
-        b = pw.chromium.launch(args=["--disable-gpu"])
+        b = pw.chromium.launch(args=["--disable-gpu"], executable_path=os.environ.get("CHROMIUM_PATH"))
         pg = b.new_page(viewport={"width": 1440, "height": 900})
         pg.on("pageerror", lambda e: errs.append(str(e)))
         pg.goto(BASE, wait_until="load"); pg.wait_for_selector("#grid .card", timeout=30000)
@@ -37,6 +38,22 @@ try:
         res["theme_dark"] = pg.evaluate("document.documentElement.dataset.theme + '/' + localStorage.getItem('atlas.theme')")
         pg.reload(); pg.wait_for_selector("#grid .card", timeout=30000)
         res["theme_after_reload"] = pg.evaluate("document.documentElement.dataset.theme")
+        # top-nav jumps must land on the section itself, not inside the project grid
+        landing = {}
+        for sec in ["ai-nav", "community", "explore", "reading", "ai-nav"]:
+            pg.click(f'#topnav a[href="#{sec}"]'); pg.wait_for_timeout(2500)
+            landing[sec] = pg.evaluate("""(id) => { const el = document.getElementById(id);
+              const mid = document.elementFromPoint(innerWidth / 2, innerHeight / 2);
+              return (mid && mid.closest('section') || {}).id === id && Math.abs(el.getBoundingClientRect().top - parseFloat(getComputedStyle(el).scrollMarginTop)) < 8 && location.hash === '#' + id; }""", sec)
+        res["nav_landing"] = landing
+        res["grid_cards_invisible"] = pg.evaluate("[...document.querySelectorAll('#grid .card')].filter(c => +getComputedStyle(c).opacity < 0.1 && c.getBoundingClientRect().bottom < innerHeight).length")
+        dl = b.new_page(viewport={"width": 1280, "height": 800})
+        dl.goto(BASE + "#community", wait_until="load"); dl.wait_for_timeout(2500)
+        res["deeplink_section"] = dl.evaluate("Math.round(document.getElementById('community').getBoundingClientRect().top)")
+        dl.goto(BASE + "?p=sindresorhus%2Fawesome", wait_until="load"); dl.wait_for_timeout(1500)
+        res["deeplink_project"] = dl.evaluate("document.querySelector('#drawer').hidden ? null : document.querySelector('#drawer-title').textContent")
+        dl.close()
+        pg.goto(BASE, wait_until="load"); pg.wait_for_selector("#grid .card", timeout=30000)
         pg.click("#view-list"); pg.wait_for_timeout(300)
         res["list_view"] = pg.evaluate("document.querySelector('#grid').classList.contains('list')")
         pg.screenshot(path=f"{OUT}/v3-desktop-list.png")
@@ -58,5 +75,5 @@ try:
 finally:
     srv.terminate()
 res["page_errors"] = errs
-open("/home/hatch/workspace/skill-mcp-hub//tmp/smoke_result.json", "w").write(json.dumps(res, ensure_ascii=False, indent=1))
+open(os.path.join(OUT, "smoke_result.json"), "w").write(json.dumps(res, ensure_ascii=False, indent=1))
 print(json.dumps(res, ensure_ascii=False))
