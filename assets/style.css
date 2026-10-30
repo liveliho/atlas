@@ -478,6 +478,74 @@ footer p { margin: 4px 0; }
   .topnav a.nav-gh { display: none; }
 }
 
+/* ---------- cinematic scroll: showcase stage + topbar state ---------- */
+.topbar { transition: background 0.35s ease-out, box-shadow 0.35s ease-out; }
+.topbar.scrolled {
+  background: var(--glass-strong);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.10);
+}
+.topbar.scrolled .brand-mark { transform: scale(0.94); }
+.brand-mark { transition: transform 0.35s ease-out; }
+/* when GSAP drives card entrances, the CSS rise animation must not fight it */
+.motion-on .card { animation: none; }
+.band-head h2 .ch, .method h2 .ch { display: inline-block; will-change: transform, opacity; }
+
+#showcase { scroll-margin-top: 70px; overflow: visible; }
+.showcase-inner {
+  max-width: var(--maxw); margin: 0 auto; padding: 84px 22px 30px;
+  min-height: calc(100vh - 64px); display: flex; flex-direction: column; justify-content: center;
+}
+.showcase-head { text-align: center; margin-bottom: 44px; }
+.showcase-head .kicker { margin-bottom: 10px; }
+.showcase-title { font-size: clamp(30px, 4.5vw, 44px); font-weight: 800; letter-spacing: -0.028em; margin: 0; }
+.showcase-sub { color: var(--ink-3); margin: 10px auto 0; font-size: 15.5px; }
+.stage-zone {
+  display: grid; grid-template-columns: 1fr 1.15fr; gap: 52px; align-items: center;
+  perspective: 1200px;
+}
+.stage-copy { min-width: 0; }
+.stage-index { font-size: 15px; font-weight: 700; letter-spacing: 0.12em; color: var(--accent-ink); margin: 0 0 14px; font-variant-numeric: tabular-nums; }
+.stage-name { font-size: clamp(24px, 3vw, 34px); font-weight: 800; letter-spacing: -0.025em; line-height: 1.15; margin: 0; overflow-wrap: anywhere; }
+.stage-blurb { font-size: 17px; line-height: 1.65; color: var(--ink-2); margin: 16px 0 0; max-width: 42ch; }
+.stage-card {
+  border-radius: var(--radius-lg); padding: 30px; display: block;
+  text-decoration: none; color: var(--ink); min-width: 0;
+  transform-style: preserve-3d;
+}
+.stage-card-top { display: flex; align-items: center; gap: 16px; }
+.stage-avatar { width: 60px; height: 60px; border-radius: 18px; flex-shrink: 0; background: rgba(120,120,128,.15); }
+.stage-card-id { min-width: 0; flex: 1; }
+.stage-repo { font-size: 23px; font-weight: 750; letter-spacing: -0.02em; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stage-owner { font-size: 14.5px; color: var(--ink-3); margin: 2px 0 0; }
+.stage-stars { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.stage-desc { font-size: 16.5px; line-height: 1.6; color: var(--ink-2); margin: 20px 0 0; overflow-wrap: anywhere; }
+.stage-meta { font-size: 14px; color: var(--ink-3); margin: 16px 0 0; font-variant-numeric: tabular-nums; }
+.stage-ui { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: 6px; }
+.stage-dots { display: flex; gap: 9px; }
+.stage-dot {
+  width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer;
+  background: none; display: grid; place-items: center; padding: 0;
+}
+.stage-dot::after {
+  content: ""; width: 9px; height: 9px; border-radius: 50%;
+  background: rgba(120, 120, 128, 0.45); transition: all 0.3s ease-out;
+}
+.stage-dot.active::after { background: var(--accent); transform: scale(1.35); }
+.stage-progress { width: min(420px, 70%); height: 3px; border-radius: 99px; background: rgba(120, 120, 128, 0.22); overflow: hidden; }
+.stage-progress-fill { display: block; height: 100%; background: var(--accent); transform: scaleX(0); transform-origin: left center; border-radius: 99px; }
+.showcase-list { display: none; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+@media (max-width: 767.5px) {
+  .showcase-inner { min-height: 0; padding: 54px 14px 6px; display: block; }
+  .showcase-head { margin-bottom: 24px; }
+  .stage-zone { display: none; }
+  .showcase-list { display: grid; grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage-zone { display: none; }
+  .showcase-list { display: grid; }
+  .showcase-inner { min-height: 0; display: block; }
+}
+
 /* ---------- reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

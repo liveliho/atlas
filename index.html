@@ -63,6 +63,40 @@
     <p class="search-hint">记不准拼写？打开下方<strong>模糊搜索</strong>，输 <code>plywrght</code>、<code>sklls</code> 也能找到。</p>
   </section>
 
+  <section id="showcase" class="showcase" aria-label="万星精选">
+    <div class="showcase-inner">
+      <div class="showcase-head">
+        <p class="kicker">Top of GitHub</p>
+        <h2 class="showcase-title">万星精选 · 全站前五</h2>
+        <p class="showcase-sub">继续滚动，依次认识 GitHub 上 Star 最高的五个仓库。</p>
+      </div>
+      <div class="stage-zone">
+        <div class="stage-copy" aria-live="off">
+          <p class="stage-index"><span id="stage-idx">01</span> / 05</p>
+          <p class="stage-name" id="stage-name">codecrafters-io/build-your-own-x</p>
+          <p class="stage-blurb" id="stage-blurb">「自己动手重造轮子」——从零复刻你熟悉的技术，是 GitHub 上最受欢迎的学习仓库。</p>
+        </div>
+        <a class="stage-card glass" id="stage-card" href="https://github.com/codecrafters-io/build-your-own-x" target="_blank" rel="noopener">
+          <div class="stage-card-top">
+            <img class="stage-avatar" id="stage-avatar" src="https://github.com/codecrafters-io.png?size=96" alt="" width="60" height="60">
+            <div class="stage-card-id">
+              <p class="stage-repo" id="stage-repo">build-your-own-x</p>
+              <p class="stage-owner" id="stage-owner">codecrafters-io</p>
+            </div>
+            <span class="stage-stars" id="stage-stars">★ 557k</span>
+          </div>
+          <p class="stage-desc" id="stage-desc">Master programming by recreating your favorite technologies from scratch.</p>
+          <p class="stage-meta" id="stage-meta">⑂ 52k · Markdown</p>
+        </a>
+        <div class="stage-ui">
+          <div class="stage-dots" id="stage-dots" role="group" aria-label="选择精选项目"></div>
+          <div class="stage-progress" aria-hidden="true"><span class="stage-progress-fill"></span></div>
+        </div>
+      </div>
+      <div class="showcase-list" id="showcase-list"></div>
+    </div>
+  </section>
+
   <section id="explore" class="explore">
     <div class="toolbar">
       <div class="pills-scroll">
@@ -171,5 +205,8 @@
 </button>
 <script src="assets/app.js"></script>
 <script src="assets/extras.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script src="assets/motion.js"></script>
 </body>
 </html>
