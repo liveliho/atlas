@@ -1,4 +1,8 @@
-# Atlas — GitHub 上值得收藏的项目
+<p align="center">
+  <img src="assets/logo-512.png" alt="Atlas Logo — 镂空罗盘星" width="112" height="112">
+</p>
+
+<h1 align="center">Atlas — GitHub 上值得收藏的项目</h1>
 
 **集结 GitHub 上真正有用的项目：5,320 个万星级仓库，加上精选的 Agent Skills、MCP 服务器、AI 工具与开发神器。**
 

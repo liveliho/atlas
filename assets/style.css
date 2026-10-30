@@ -38,7 +38,9 @@
     --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.5), 0 20px 44px rgba(0, 0, 0, 0.6);
   }
 }
-* { box-sizing: border-box; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+/* NOTE: no overflow-x on html — it silently kills position:sticky in Chromium.
+   body keeps overflow-x:hidden as the horizontal-overflow guard. */
 html { scroll-behavior: smooth; }
 body {
   margin: 0;
@@ -50,6 +52,8 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
+/* hero title line-break: desktop one line, mobile breaks before 一图尽览 */
+.br-m { display: none; }
 .sr-only {
   position: absolute; width: 1px; height: 1px; margin: -1px;
   clip-path: inset(50%); overflow: hidden; white-space: nowrap;
@@ -86,17 +90,14 @@ a { color: var(--accent-ink); }
   box-shadow: none;
 }
 .topbar-in {
-  max-width: var(--maxw); margin: 0 auto; padding: 0 22px;
-  height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  max-width: var(--maxw); margin: 0 auto;
+  padding: 0 max(22px, env(safe-area-inset-right)) 0 max(22px, env(safe-area-inset-left));
+  padding-top: env(safe-area-inset-top);
+  min-height: calc(56px + env(safe-area-inset-top));
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
 }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); min-height: 44px; }
-.brand-mark {
-  width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
-  display: grid; place-items: center;
-  background: linear-gradient(135deg, #0071e3, #7d7aff);
-  color: #fff; font-weight: 700; font-size: 18px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 4px 10px rgba(0, 113, 227, 0.35);
-}
+.brand-mark { width: 34px; height: 34px; flex-shrink: 0; display: block; }
 .brand-name { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
 .topnav { display: flex; gap: 6px; align-items: center; }
 .topnav a {
@@ -105,7 +106,6 @@ a { color: var(--accent-ink); }
   display: inline-flex; align-items: center;
   transition: background 0.2s ease-out;
 }
-.topnav a:hover { background: rgba(120, 120, 128, 0.14); }
 
 /* ---------- hero ---------- */
 .hero { max-width: 860px; margin: 0 auto; padding: 72px 22px 34px; text-align: center; }
@@ -150,13 +150,22 @@ a { color: var(--accent-ink); }
 .search-hint code { font-size: 13px; background: rgba(120,120,128,.14); padding: 1px 6px; border-radius: 6px; }
 
 /* ---------- explore / toolbar ---------- */
+/* anchor jumps must clear the sticky top bar (desktop also has the sticky toolbar zone) */
+#explore { scroll-margin-top: 70px; }
+#method { scroll-margin-top: 84px; }
 .explore { max-width: var(--maxw); margin: 0 auto; padding: 22px 22px 10px; }
 .toolbar {
   position: sticky; top: 68px; z-index: 40;
   border-radius: var(--radius-lg); padding: 12px 14px;
   display: flex; flex-direction: column; gap: 10px;
 }
-.pills-scroll { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; margin: 0 -4px; padding: 2px 4px; }
+.pills-scroll {
+  overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  margin: 0 -4px; padding: 2px 4px;
+  /* right-edge fade hints the row is scrollable */
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 30px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 30px), transparent 100%);
+}
 .pills-scroll::-webkit-scrollbar { display: none; }
 .pills { display: flex; gap: 8px; width: max-content; }
 .pill {
@@ -168,7 +177,6 @@ a { color: var(--accent-ink); }
   transition: background 0.2s ease-out, color 0.2s ease-out, transform 0.12s ease-out;
 }
 .pill small { font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.pill:hover { background: rgba(120, 120, 128, 0.2); }
 .pill:active { transform: scale(0.97); }
 .pill.active { background: var(--ink); color: var(--bg); }
 .pill.active small { color: inherit; opacity: 0.65; }
@@ -205,10 +213,8 @@ a { color: var(--accent-ink); }
   transition: transform 0.12s ease-out, background 0.2s ease-out, opacity 0.2s;
 }
 .ghost-btn { color: var(--accent-ink); background: rgba(0, 113, 227, 0.10); border: 1px solid transparent; }
-.ghost-btn:hover { background: rgba(0, 113, 227, 0.17); }
 .ghost-btn:active, .primary-btn:active { transform: scale(0.97); }
 .primary-btn { color: #fff; background: var(--accent); border: none; font-weight: 600; padding: 11px 26px; }
-.primary-btn:hover { opacity: 0.88; }
 .result-line { margin: 20px 4px 14px; font-size: 14.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 
 /* ---------- cards ---------- */
@@ -216,11 +222,11 @@ a { color: var(--accent-ink); }
 .card {
   border-radius: var(--radius-card); padding: 20px;
   display: flex; flex-direction: column; gap: 11px;
+  min-width: 0; /* grid items must be allowed to shrink below content min-content */
   text-decoration: none; color: var(--ink);
   transition: transform 0.25s ease-out, box-shadow 0.25s ease-out;
   animation: rise 0.55s ease-out both; animation-delay: var(--d, 0ms);
 }
-.card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lift), inset 0 1px 0 rgba(255,255,255,.55); }
 .card:active { transform: scale(0.99); }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 .card-top { display: flex; align-items: center; gap: 12px; }
@@ -236,10 +242,11 @@ a { color: var(--accent-ink); }
 .desc {
   margin: 0; font-size: 15px; line-height: 1.55; color: var(--ink-2);
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  overflow-wrap: anywhere; /* long unbroken tokens (URLs, paths) must not stretch the card */
 }
 .desc mark, .repo-name mark { background: rgba(0, 113, 227, 0.22); color: inherit; border-radius: 4px; padding: 0 1px; }
 .pro-line { display: flex; flex-wrap: wrap; gap: 6px; }
-.field-chip, .work-tag, .tag { font-size: 12.5px; padding: 3.5px 10px; border-radius: var(--radius-pill); white-space: nowrap; }
+.field-chip, .work-tag, .tag { font-size: 12.5px; padding: 3.5px 10px; border-radius: var(--radius-pill); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .field-chip { background: rgba(120,120,128,.13); color: var(--ink); font-weight: 600; }
 .work-tag { background: rgba(0, 113, 227, 0.09); color: var(--accent-ink); }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -4px; }
@@ -270,10 +277,13 @@ a { color: var(--accent-ink); }
 .method-card p { margin: 0; font-size: 15px; color: var(--ink-2); }
 
 /* ---------- footer / to-top ---------- */
-footer { max-width: var(--maxw); margin: 0 auto; padding: 40px 22px 56px; text-align: center; color: var(--ink-3); font-size: 13.5px; }
+footer {
+  max-width: var(--maxw); margin: 0 auto; text-align: center; color: var(--ink-3); font-size: 13.5px;
+  padding: 40px max(22px, env(safe-area-inset-right)) calc(56px + env(safe-area-inset-bottom)) max(22px, env(safe-area-inset-left));
+}
 footer p { margin: 4px 0; }
 #to-top {
-  position: fixed; right: 20px; bottom: 24px; z-index: 60;
+  position: fixed; right: max(20px, env(safe-area-inset-right)); bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 60;
   width: 50px; height: 50px; border-radius: 50%; cursor: pointer;
   display: grid; place-items: center; color: var(--ink);
   background: var(--glass-strong);
@@ -284,6 +294,33 @@ footer p { margin: 4px 0; }
 }
 #to-top.show { opacity: 1; pointer-events: auto; transform: none; }
 
+/* ---------- hover only where a real hover device exists ---------- */
+@media (hover: hover) and (pointer: fine) {
+  .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lift), inset 0 1px 0 rgba(255,255,255,.55); }
+  .pill:hover { background: rgba(120, 120, 128, 0.2); }
+  .pill.active:hover { background: var(--ink); }
+  .ghost-btn:hover { background: rgba(0, 113, 227, 0.17); }
+  .primary-btn:hover { opacity: 0.88; }
+  .topnav a:hover { background: rgba(120, 120, 128, 0.14); }
+}
+
+/* ---------- touch devices: lighter glass (GPU-friendly scrolling) ----------
+   Cards & method cards drop backdrop-filter and one shadow layer;
+   the fixed nav/toolbar bars keep a reduced blur. */
+@media (hover: none), (pointer: coarse) {
+  .card, .method-card, .stats, .empty {
+    background: var(--glass-strong);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.07);
+  }
+  .topbar, .toolbar, .hero-search, #to-top {
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    backdrop-filter: blur(12px) saturate(160%);
+  }
+  .card { animation-duration: 0.35s; animation-delay: min(var(--d, 0ms), 120ms); }
+}
+
 /* ---------- breakpoints ---------- */
 @media (min-width: 1200px) {
   .grid { grid-template-columns: repeat(4, 1fr); }
@@ -293,23 +330,50 @@ footer p { margin: 4px 0; }
 }
 @media (max-width: 767.5px) {
   .grid { grid-template-columns: 1fr; }
+  .br-m { display: block; }
   .hero { padding: 46px 18px 24px; }
   .hero h1 { font-size: 40px; }
   .hero-desc { font-size: 16px; }
-  .stats { grid-template-columns: repeat(2, 1fr); gap: 14px 0; padding: 16px 8px; }
+  /* stats become a tidy 2x2: vertical divider on col 2, top hairline on row 2 */
+  .stats { grid-template-columns: repeat(2, 1fr); gap: 0; padding: 8px; }
+  .stat { padding: 10px 6px; }
   .stat:nth-child(3) { border-left: none; }
+  .stat:nth-child(n+3) { border-top: 1px solid var(--hairline); }
   .stat-num { font-size: 24px; }
   .hero-search { height: 54px; padding: 0 16px; }
   .hero-search kbd { display: none; }
   .explore, .method { padding-left: 14px; padding-right: 14px; }
-  .toolbar { top: 62px; padding: 10px; border-radius: 22px; }
+  /* toolbar no longer sticks on phones (was ~200px of permanent screen);
+     only the slim topbar stays pinned */
+  .toolbar { position: static; padding: 10px; border-radius: 22px; }
   .controls { gap: 6px 12px; }
-  .controls select { flex: 1 1 44%; }
-  .ghost-btn { flex: 1 1 44%; }
-  .topbar-in { padding: 0 14px; }
+  /* focusable controls at 16px so iOS does not auto-zoom on focus */
+  .controls select { flex: 1 1 44%; font-size: 16px; }
+  .toggle { font-size: 16px; }
+  .ghost-btn { flex: 1 1 44%; font-size: 16px; }
+  .topbar-in { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+  .topnav { gap: 2px; }
   .topnav a { padding: 10px 9px; font-size: 14.5px; }
   .card { padding: 18px; }
   body { font-size: 15.5px; }
+  /* back-to-top: smaller & quieter on phones, never hogging card corners */
+  #to-top {
+    width: 44px; height: 44px;
+    background: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.10);
+  }
+  #method { scroll-margin-top: 70px; }
+  #explore { scroll-margin-top: 62px; }
+}
+@media (prefers-color-scheme: dark) and (max-width: 767.5px) {
+  #to-top { background: rgba(34, 34, 38, 0.5); }
+}
+@media (max-width: 480px) {
+  /* keep the top bar on one line at 360px: drop the least-needed link */
+  .topnav a[href="#method"] { display: none; }
+  .topnav a { padding: 10px 8px; font-size: 14px; }
+  .brand-name { font-size: 19px; }
+  .brand { gap: 8px; }
 }
 
 /* ---------- reduced motion ---------- */

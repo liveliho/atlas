@@ -208,6 +208,15 @@ $("#featured-only").addEventListener("change", (e) => { state.featured = e.targe
 $("#over10k-only").addEventListener("change", (e) => { state.over10k = e.target.checked; state.shown = PAGE; render(); });
 $("#fuzzy-only").addEventListener("change", (e) => { state.fuzzy = e.target.checked; state.shown = PAGE; render(); });
 $("#more-btn").addEventListener("click", () => { state.shown += PAGE; render(); });
+/* auto-load more cards as the sentinel scrolls into view (button stays as fallback) */
+const sentinel = $("#load-sentinel");
+if (sentinel && "IntersectionObserver" in window) {
+  new IntersectionObserver((entries) => {
+    if (!entries.some((en) => en.isIntersecting)) return;
+    const total = filtered().length;
+    if (total > state.shown) { state.shown += PAGE; render(); }
+  }, { rootMargin: "600px 0px" }).observe(sentinel);
+}
 $("#reset-btn").addEventListener("click", () => {
   clearTimeout(debounce);
   state = { cat: "all", field: "all", q: "", sort: "stars", featured: false, over10k: false, fuzzy: false, shown: PAGE };
@@ -228,4 +237,13 @@ toTop.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smoot
 document.addEventListener("keydown", (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); $("#search").focus(); }
 });
+/* shorter search placeholder on narrow screens so it is never truncated */
+const mqNarrow = window.matchMedia("(max-width: 767.5px)");
+function applyPlaceholder() {
+  $("#search").placeholder = mqNarrow.matches
+    ? "搜项目、作者、技能…"
+    : "搜项目、作者、技能……比如 playwright、营销、渗透测试";
+}
+if (mqNarrow.addEventListener) mqNarrow.addEventListener("change", applyPlaceholder);
+applyPlaceholder();
 init();
