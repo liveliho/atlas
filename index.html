@@ -32,6 +32,9 @@
     </a>
     <nav class="topnav" aria-label="主导航">
       <a href="#explore">探索</a>
+      <a href="#ai-nav">AI 导航</a>
+      <a href="#community">社区</a>
+      <a href="#reading">阅读</a>
       <a href="#method">收录标准</a>
       <a class="nav-gh" href="https://github.com/liveliho/atlas" target="_blank" rel="noopener">GitHub ↗</a>
     </nav>
@@ -94,6 +97,38 @@
     <div id="load-sentinel" aria-hidden="true" style="height:1px"></div>
   </section>
 
+  <section id="ai-nav" class="band">
+    <div class="band-head">
+      <p class="kicker">AI Navigator</p>
+      <h2>AI 导航专区</h2>
+      <p class="band-sub">国内外主流 AI 产品一站直达，点任意卡片前往官网。标「官方标语」的是官网原句，其余为 Atlas 提炼的一句话介绍。</p>
+    </div>
+    <div id="nav-groups"></div>
+  </section>
+
+  <section id="community" class="band">
+    <div class="band-head">
+      <p class="kicker">Community</p>
+      <h2>AI 论坛社区</h2>
+      <p class="band-sub">提问、吃瓜、追前沿——开发者和研究者们聚集的 AI 社区，点卡片直达。</p>
+    </div>
+    <div id="forum-groups"></div>
+  </section>
+
+  <section id="reading" class="band">
+    <div class="band-head">
+      <p class="kicker">Reading</p>
+      <h2>AI 阅读</h2>
+      <p class="band-sub">值得长期追的博客、绕不开的经典论文，和一组把概念讲清楚的知识点。</p>
+    </div>
+    <h3 class="sub-head">热门博客与好文章</h3>
+    <div id="blog-grid" class="xgrid read-grid"></div>
+    <h3 class="sub-head">经典论文</h3>
+    <div id="paper-grid" class="xgrid read-grid"></div>
+    <h3 class="sub-head">知识点</h3>
+    <div id="know-grid" class="xgrid read-grid"></div>
+  </section>
+
   <section id="method" class="method">
     <h2>收录标准</h2>
     <p class="method-sub">Curated, not crawled blindly.</p>
@@ -135,5 +170,6 @@
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m-7 7 7-7 7 7"/></svg>
 </button>
 <script src="assets/app.js"></script>
+<script src="assets/extras.js"></script>
 </body>
 </html>

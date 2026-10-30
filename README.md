@@ -23,6 +23,14 @@ GitHub 上有几亿个仓库，好东西总是被淹没。Atlas 把其中**真�
 
 每个项目都附带：**作者头像、作者名、项目简介、Star / Fork 数、主要语言、标签与 GitHub 直达链接**，并逐个标注**专业领域**（软件开发、市场营销、网络安全、金融与交易、法律与合规、医疗健康等 16 类）与**具体工作技能**（如 SEO 优化、渗透测试、合同审查）。官方组织（modelcontextprotocol、anthropics、github、microsoft、openai 等）的出品带有「官方」徽章。
 
+## 站内专区
+
+- **AI 导航专区（#ai-nav）** — 32 个国内外主流 AI 产品：ChatGPT、Claude、Gemini、DeepSeek、豆包、Kimi 等对话助手，Midjourney、可灵、即梦等创意生成工具，Cursor、GitHub Copilot 与 Perplexity、NotebookLM 等。品牌图标（Simple Icons 开源 SVG + 官网 favicon 两级兜底）+ 公司 + 一句话介绍，整卡直达官网。
+- **AI 论坛社区（#community）** — 18 个社区：Hugging Face 论坛、OpenAI 社区、r/LocalLLaMA、Hacker News、LangChain 论坛、EleutherAI Discord，以及 Linux DO、魔搭社区、WaytoAGI、Datawhale、知乎 AI 话题、机器之心等国内社区。
+- **AI 阅读（#reading）** — 热门博客与好文章（OpenAI / Anthropic / DeepMind 官方博客、Lil'Log、The Illustrated Transformer、Karpathy、机器之心、量子位等）、12 篇地标论文（Attention、BERT、GPT-3、RAG、LoRA、LLaMA 等，全部 arXiv 直达）、14 张知识点卡片（Token、RAG、微调、Agent、MCP、幻觉……站内直接读）。
+
+专区数据与渲染在 [`assets/extras.js`](assets/extras.js)，与项目库的搜索筛选互不影响。
+
 ## 收录标准
 
 1. **万星专区**：Stars > 10,000、非 Fork、未归档、简介清晰——按 Star 区间切片穷尽抓取，一片不漏。

@@ -376,6 +376,108 @@ footer p { margin: 4px 0; }
   .brand { gap: 8px; }
 }
 
+/* ---------- extras: AI nav / community / reading ---------- */
+#ai-nav, #community, #reading { scroll-margin-top: 84px; }
+.band { max-width: var(--maxw); margin: 0 auto; padding: 48px 22px 8px; }
+.band-head { text-align: center; margin-bottom: 28px; }
+.band-head .kicker { margin-bottom: 10px; }
+.band-head h2 { font-size: clamp(30px, 4.5vw, 42px); font-weight: 800; letter-spacing: -0.028em; margin: 0; }
+.band-sub { color: var(--ink-3); margin: 10px auto 0; font-size: 15.5px; max-width: 65ch; }
+.group-title {
+  font-size: 19px; font-weight: 700; letter-spacing: -0.015em;
+  margin: 26px 2px 14px; display: flex; align-items: baseline; gap: 10px;
+}
+.group-title small { font-size: 13px; color: var(--ink-3); font-weight: 500; }
+.sub-head { font-size: 21px; font-weight: 750; letter-spacing: -0.02em; margin: 34px 2px 14px; }
+.sub-head:first-of-type { margin-top: 6px; }
+.xgrid { display: grid; gap: 14px; }
+.nav-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); }
+.read-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+.xcard {
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  border-radius: var(--radius-card); padding: 16px;
+  display: flex; gap: 13px; align-items: flex-start;
+  min-width: 0; text-decoration: none; color: var(--ink);
+  transition: transform 0.25s ease-out, box-shadow 0.25s ease-out;
+}
+.xcard:active { transform: scale(0.99); }
+.xcard-col { flex-direction: column; gap: 9px; }
+.icon-box {
+  width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--hairline);
+  display: grid; place-items: center; overflow: hidden; position: relative;
+}
+@media (prefers-color-scheme: dark) { .icon-box { background: rgba(255, 255, 255, 0.92); } }
+.icon-box img { width: 27px; height: 27px; display: block; }
+.icon-letter {
+  position: absolute; inset: 0; display: none;
+  place-items: center; color: #fff; font-weight: 700; font-size: 20px;
+}
+.icon-box.no-icon img { display: none; }
+.icon-box.no-icon .icon-letter { display: grid; }
+.xcard-main { min-width: 0; flex: 1; }
+.xcard-name { font-size: 16px; font-weight: 650; letter-spacing: -0.01em; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.xcard-org { font-size: 12.5px; color: var(--ink-3); font-weight: 500; }
+.xcard-slogan { margin: 3px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); overflow-wrap: anywhere; }
+.tag-official {
+  font-size: 11px; font-weight: 600; color: var(--accent-ink);
+  background: rgba(0, 113, 227, 0.12); border-radius: var(--radius-pill); padding: 2px 8px; white-space: nowrap;
+}
+.tag-type {
+  font-size: 11px; font-weight: 600; color: var(--ink-2);
+  background: rgba(120, 120, 128, 0.14); border-radius: var(--radius-pill); padding: 2px 8px; white-space: nowrap;
+}
+.xcard-title { font-size: 16px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.4; overflow-wrap: anywhere; }
+.xcard-meta { font-size: 13px; color: var(--ink-3); }
+.xcard-text { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--ink-2); overflow-wrap: anywhere; }
+.arxiv-chip {
+  align-self: flex-start; font-size: 12.5px; font-weight: 600; color: var(--accent-ink);
+  background: rgba(0, 113, 227, 0.09); border-radius: var(--radius-pill); padding: 3.5px 11px;
+  font-variant-numeric: tabular-nums;
+}
+@media (hover: hover) and (pointer: fine) {
+  .xcard:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift), inset 0 1px 0 rgba(255,255,255,.55); }
+}
+@media (hover: none), (pointer: coarse) {
+  .xcard {
+    background: var(--glass-strong);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.07);
+  }
+}
+@media (min-width: 1200px) {
+  .nav-grid { grid-template-columns: repeat(4, 1fr); }
+  .read-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 768px) and (max-width: 1199.5px) {
+  .nav-grid, .read-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 767.5px) {
+  .band { padding: 36px 14px 4px; }
+  #ai-nav, #community, #reading { scroll-margin-top: 70px; }
+  /* compact 2-up tiles for nav & forums on phones; reading lists stay 1-up */
+  .nav-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .read-grid { grid-template-columns: 1fr; }
+  .xcard { padding: 13px; border-radius: 22px; }
+  .nav-grid .xcard { flex-direction: column; gap: 9px; }
+  .icon-box { width: 40px; height: 40px; border-radius: 12px; }
+  .icon-box img { width: 24px; height: 24px; }
+  .group-title { margin-top: 20px; }
+}
+/* top bar with 6 entries: shed the least-needed links as width shrinks */
+@media (max-width: 1020px) {
+  .topnav a[href="#method"] { display: none; }
+}
+@media (max-width: 767.5px) {
+  .topnav a.nav-gh { display: none; }
+}
+
 /* ---------- reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
