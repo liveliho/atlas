@@ -1,0 +1,13 @@
+{
+  "name": "atlas",
+  "private": true,
+  "description": "Atlas — GitHub 上值得收藏的项目（纯静态站点，无构建步骤）",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "build": "python3 scripts/build_index.py",
+    "test": "node scripts/smoke.js && python3 scripts/test_classification.py"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}

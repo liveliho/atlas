@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Atlas logo">
+  <title>Atlas — 镂空罗盘星</title>
+  <desc>圆角方形（squircle）实面中以 evenodd 规则挖空一颗四芒罗盘星，星洞完全透明，背景可透过。</desc>
+  <defs>
+    <linearGradient id="atlas-g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0071e3"/>
+      <stop offset="1" stop-color="#7d7aff"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer squircle + inner compass star in ONE path.
+       fill-rule="evenodd" punches the star out of the squircle:
+       the star area stays truly transparent (a real cut-out). -->
+  <path fill="url(#atlas-g)" fill-rule="evenodd" d="
+    M38 10 H82 Q110 10 110 38 V82 Q110 110 82 110 H38 Q10 110 10 82 V38 Q10 10 38 10 Z
+    M60 25 Q66.5 53.5 95 60 Q66.5 66.5 60 95 Q53.5 66.5 25 60 Q53.5 53.5 60 25 Z
+  "/>
+</svg>
