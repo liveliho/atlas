@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo-512.png" alt="Atlas Logo — 镂空罗盘星" width="112" height="112">
+  <img src="assets/logo.svg" alt="Atlas Logo — 镂空罗盘星" width="112" height="112">
 </p>
 
 <h1 align="center">Atlas — GitHub 上值得收藏的项目</h1>
