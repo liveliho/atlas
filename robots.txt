@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://liveliho.github.io/atlas/sitemap.xml

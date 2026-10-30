@@ -132,17 +132,8 @@
   document.documentElement.classList.add("motion-on");
   ScrollTrigger.config({ ignoreMobileResize: true });
 
-  /* split section titles into chars for editorial staggered reveals */
-  function splitChars(sel) {
-    document.querySelectorAll(sel).forEach(function (h) {
-      var text = h.textContent;
-      h.setAttribute("aria-label", text);
-      h.innerHTML = text.split("").map(function (c) {
-        return '<span class="ch" aria-hidden="true">' + (c === " " ? "&nbsp;" : c) + "</span>";
-      }).join("");
-    });
-  }
-  splitChars(".band-head h2, .method h2, .showcase-title");
+  /* v3 refactor: per-char title splitting was removed (decorative cost,
+     accessibility noise); headings now reveal as single blocks in reveals(). */
 
   /* dynamic project cards: batch entrance that survives app.js re-renders */
   var cardTriggers = [];
@@ -183,10 +174,8 @@
       });
     });
     gsap.utils.toArray(".band-head h2, .method h2, .showcase-title").forEach(function (h) {
-      var chars = h.querySelectorAll(".ch");
-      if (!chars.length) return;
-      gsap.from(chars, {
-        yPercent: 65, autoAlpha: 0, duration: 0.7, stagger: 0.03, ease: "power3.out",
+      gsap.from(h, {
+        y: 30, autoAlpha: 0, duration: 0.8, ease: "power3.out",
         scrollTrigger: { trigger: h, start: "top 88%", once: true }
       });
     });
@@ -204,24 +193,6 @@
       .to(".hero-search", { y: -20 * s, autoAlpha: 0.5, ease: "none" }, 0)
       .to(".brand-mark", { rotation: 90 * s, scale: 1.07, ease: "none" }, 0);
     return tl;
-  }
-  function themeShifts() {
-    var colors = { explore: "#c7e3ff", "ai-nav": "#d8ccff", community: "#ffd9ec", reading: "#c9f0e0", method: "#ffe9c9" };
-    Object.keys(colors).forEach(function (id) {
-      var el = document.getElementById(id);
-      if (!el) return;
-      ScrollTrigger.create({
-        trigger: el, start: "top 55%", end: "bottom 55%",
-        onToggle: function (self) {
-          if (self.isActive) {
-            gsap.to(".aura-a", {
-              background: "radial-gradient(circle, " + colors[id] + " 0%, transparent 65%)",
-              duration: 1.2, ease: "power2.out", overwrite: "auto"
-            });
-          }
-        }
-      });
-    });
   }
   function pinScene() {
     var tl = gsap.timeline({
@@ -252,7 +223,6 @@
     pinScene();
     reveals();
     setupStaticCards();
-    themeShifts();
     return function () { tier = null; killCardTriggers(); };
   });
   mm.add("(max-width: 767.5px) and (prefers-reduced-motion: no-preference)", function () {
@@ -260,7 +230,6 @@
     heroScrub(0.55);
     reveals();
     setupStaticCards();
-    themeShifts();
     return function () { tier = null; killCardTriggers(); };
   });
 

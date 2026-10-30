@@ -1,3 +1,9 @@
+/* Atlas app v3 — single-file catalog engine.
+   Data: one compact index (data/index.json) instead of 57 chunks.
+   One search core shared by the explore grid and the ⌘K palette.
+   Rendering is incremental: "load more" appends, never rebuilds. */
+"use strict";
+
 const CAT_DOTS = {
   "MCP": "#0a84ff", "Skills": "#ff6b4a", "AI智能体与大模型": "#7d7aff",
   "AI工具与机器学习": "#bf5af2", "开发工具": "#64d2ff", "前端与Web开发": "#30d158",
@@ -6,32 +12,58 @@ const CAT_DOTS = {
   "设计与UI": "#ff6482", "视频多媒体与内容": "#ff375f", "金融商业与电商": "#63e6be",
   "移动与桌面应用": "#70d7ff", "游戏与娱乐": "#da8fff", "其他实用项目": "#aeaeb2",
 };
-const FIELD_COLORS = {
-  "软件开发": "#64d2ff", "产品与设计": "#ff6482", "数据与分析": "#32ade6",
-  "人工智能与机器学习": "#7d7aff", "运维与DevOps": "#ff9f0a", "网络安全": "#ff453a",
-  "市场营销": "#ff6b4a", "内容与写作": "#ffd60a", "视频与多媒体": "#ff375f",
-  "金融与交易": "#63e6be", "法律与合规": "#bf5af2", "办公与效率": "#66d4cf",
-  "教育与研究": "#0a84ff", "电商与销售": "#ff9f0a", "医疗健康": "#30d158", "其他专业": "#aeaeb2",
-};
-let CATEGORIES = [{ id: "all", label: "全部" }];
-function buildCategories() {
-  const counts = {};
-  projects.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
-  const cats = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
-  CATEGORIES = [{ id: "all", label: "全部" }].concat(cats.map((c) => ({ id: c, label: c })));
-}
 const PAGE = 48;
-let projects = [];
-let state = { cat: "all", field: "all", q: "", sort: "stars", featured: false, over10k: false, fuzzy: false, shown: PAGE };
-
 const $ = (s) => document.querySelector(s);
 const fmt = (n) => n >= 1000 ? (n / 1000).toFixed(n >= 100000 ? 0 : 1).replace(/\.0$/, "") + "k" : String(n);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const catColor = (id) => CAT_DOTS[id] || "#aeaeb2";
-const catLabel = (id) => id;
-const fieldColor = (f) => FIELD_COLORS[f] || "#9aa6b8";
+const safeGhUrl = (u) => (typeof u === "string" && u.startsWith("https://github.com/")) ? u : null;
+const repoUrl = (p) => "https://github.com/" + p.fn;
+const avatarUrl = (p) => "https://github.com/" + p.o + ".png?size=96";
 
-/* ---------------- fuzzy matching ---------------- */
+/* ---------------- state (mirrored to the URL query) ---------------- */
+const state = { q: "", cat: "all", field: "all", over10k: false, featured: false, fav: false, strict: false, sort: "stars", view: "grid", shown: PAGE, shuffle: false };
+let projects = [];
+let generatedAt = "";
+let lastList = null, lastSig = "";
+let bookmarks = new Set();
+try { bookmarks = new Set(JSON.parse(localStorage.getItem("atlas.bookmarks") || "[]")); } catch (e) {}
+try { state.view = localStorage.getItem("atlas.view") || "grid"; } catch (e) {}
+
+function saveBookmarks() { try { localStorage.setItem("atlas.bookmarks", JSON.stringify([...bookmarks])); } catch (e) {} }
+function syncUrl() {
+  const q = new URLSearchParams();
+  if (state.q) q.set("q", state.q);
+  if (state.cat !== "all") q.set("cat", state.cat);
+  if (state.field !== "all") q.set("field", state.field);
+  if (state.over10k) q.set("over10k", "1");
+  if (state.featured) q.set("official", "1");
+  if (state.fav) q.set("fav", "1");
+  if (state.strict) q.set("strict", "1");
+  if (state.sort !== "stars") q.set("sort", state.sort);
+  if (state.view !== "grid") q.set("view", state.view);
+  const s = q.toString();
+  history.replaceState(null, "", s ? "?" + s : location.pathname);
+}
+function readUrl() {
+  const q = new URLSearchParams(location.search);
+  state.q = q.get("q") || "";
+  state.cat = q.get("cat") || "all";
+  state.field = q.get("field") || "all";
+  state.over10k = q.get("over10k") === "1";
+  state.featured = q.get("official") === "1";
+  state.fav = q.get("fav") === "1";
+  state.strict = q.get("strict") === "1";
+  state.sort = q.get("sort") || "stars";
+  state.view = q.get("view") || state.view;
+}
+window.addEventListener("popstate", () => { readUrl(); applyStateToControls(); state.shown = PAGE; renderPills(); render(true); });
+
+/* ---------------- search core (shared) ---------------- */
+function buildSearchText(p) {
+  p._q = (p.fn + " " + p.d + " " + p.l + " " + p.c + " " + p.f + " " + p.w.join(" ") + " " + p.t.join(" ")).toLowerCase();
+  p._name = p.fn.toLowerCase();
+  p._words = p._q.split(/[^a-z0-9\u4e00-\u9fff]+/).filter(Boolean);
+}
 function levenshtein(a, b) {
   if (Math.abs(a.length - b.length) > 1) return 99;
   const dp = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
@@ -41,13 +73,11 @@ function levenshtein(a, b) {
       dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
   return dp[a.length][b.length];
 }
-// score a single query token against a text: 0 = no match
-function tokenScore(token, text, words) {
-  if (!token) return 1;
-  const idx = text.indexOf(token);
-  if (idx >= 0) return 100 - Math.min(idx, 40); // substring, earlier is better
-  // subsequence (e.g. "plywrght" -> playwright, "skl" -> skills)
+function tokenScore(token, p) {
+  const idx = p._q.indexOf(token);
+  if (idx >= 0) return 100 - Math.min(idx, 40);
   let ti = 0, first = -1, last = -1;
+  const text = p._q;
   for (let i = 0; i < text.length && ti < token.length; i++) {
     if (text[i] === token[ti]) { if (first < 0) first = i; last = i; ti++; }
   }
@@ -55,28 +85,38 @@ function tokenScore(token, text, words) {
     const span = last - first + 1;
     return Math.max(30, 62 - (span - token.length) * 2);
   }
-  // one typo allowed for tokens of length >= 4 (e.g. "playwrigth")
   if (token.length >= 4) {
-    for (const w of words) {
+    for (const w of p._words) {
       if (Math.abs(w.length - token.length) <= 1 && levenshtein(token, w) <= 1) return 45;
     }
   }
   return 0;
 }
-function fuzzyMatch(p, tokens) {
-  const text = (p.full_name + " " + p.description + " " + p.owner + " " + (p.topics || []).join(" ") +
-    " " + (p.language || "") + " " + (p.field || "") + " " + (p.work_skills || []).join(" ")).toLowerCase();
-  const words = text.split(/[^a-z0-9\u4e00-\u9fff]+/).filter(Boolean);
+function scoreProject(p, tokens, strict) {
   let total = 0;
   for (const t of tokens) {
-    const s = tokenScore(t, text, words);
-    if (s <= 0) return 0;
-    total += s;
+    if (strict) {
+      if (!p._q.includes(t)) return 0;
+      total += 50;
+    } else {
+      const s = tokenScore(t, p);
+      if (s <= 0) return 0;
+      total += s;
+    }
+    if (p._name.includes(t)) total += 60;
   }
-  // name hits weigh more
-  const nameText = p.full_name.toLowerCase();
-  for (const t of tokens) if (nameText.includes(t)) total += 60;
   return total;
+}
+function searchProjects(query, limit) {
+  const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return [];
+  const out = [];
+  for (const p of projects) {
+    const s = scoreProject(p, tokens, state.strict);
+    if (s > 0) out.push([s, p]);
+  }
+  out.sort((a, b) => b[0] - a[0] || b[1].s - a[1].s);
+  return out.slice(0, limit || 8).map((x) => x[1]);
 }
 function highlight(text, tokens) {
   let out = esc(text);
@@ -84,160 +124,457 @@ function highlight(text, tokens) {
   for (const t of tokens) {
     if (t.length < 2) continue;
     const safe = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    try { out = out.replace(new RegExp("(" + safe + ")", "gi"), "<mark>$1</mark>"); } catch (e) { /* ignore */ }
+    try { out = out.replace(new RegExp("(" + safe + ")", "gi"), "<mark>$1</mark>"); } catch (e) {}
   }
   return out;
 }
 
-/* ---------------- filtering / sorting ---------------- */
+/* ---------------- filtering ---------------- */
 function filtered() {
   const tokens = state.q.toLowerCase().split(/\s+/).filter(Boolean);
-  let list = projects.filter((p) => {
-    if (state.cat !== "all" && p.category !== state.cat) return false;
-    if (state.field !== "all" && p.field !== state.field) return false;
-    if (state.featured && !p.featured) return false;
-    if (state.over10k && !p.over10k) return false;
+  const list = [];
+  for (const p of projects) {
+    if (state.cat !== "all" && p.c !== state.cat) continue;
+    if (state.field !== "all" && p.f !== state.field) continue;
+    if (state.featured && !p.ft) continue;
+    if (state.over10k && !p.ov) continue;
+    if (state.fav && !bookmarks.has(p.fn)) continue;
     if (tokens.length) {
-      if (state.fuzzy) {
-        p._score = fuzzyMatch(p, tokens);
-        if (p._score <= 0) return false;
-      } else {
-        const hay = (p.full_name + " " + p.description + " " + p.owner + " " + (p.topics || []).join(" ") +
-          " " + (p.language || "") + " " + (p.field || "") + " " + (p.work_skills || []).join(" ")).toLowerCase();
-        if (!tokens.every((w) => hay.includes(w))) return false;
-        p._score = 0;
-      }
+      const s = scoreProject(p, tokens, state.strict);
+      if (s <= 0) continue;
+      p._score = s;
     }
-    return true;
-  });
-  const by = {
-    stars: (a, b) => b.stars - a.stars,
-    forks: (a, b) => b.forks - a.forks,
-    updated: (a, b) => (b.updated_at || "").localeCompare(a.updated_at || ""),
-    name: (a, b) => a.name.localeCompare(b.name),
-    relevance: (a, b) => (b._score - a._score) || (b.stars - a.stars),
-  };
+    list.push(p);
+  }
   if (state.shuffle) return list.sort((a, b) => (a._rand || 0) - (b._rand || 0));
-  const sortKey = state.fuzzy && tokens.length ? "relevance" : state.sort;
-  return list.sort(by[sortKey] || by.stars);
+  if (tokens.length) return list.sort((a, b) => (b._score - a._score) || (b.s - a.s));
+  const by = {
+    stars: (a, b) => b.s - a.s, forks: (a, b) => b.k - a.k,
+    updated: (a, b) => (b.u || "").localeCompare(a.u || ""), name: (a, b) => a.n.localeCompare(b.n),
+  };
+  return list.sort(by[state.sort] || by.stars);
+}
+function stateSig() {
+  return [state.q, state.cat, state.field, state.over10k, state.featured, state.fav, state.strict, state.sort, state.shuffle].join("|");
 }
 
-/* ---------------- rendering ---------------- */
+/* ---------------- rendering (incremental) ---------------- */
+const grid = () => $("#grid");
+function cardHTML(p) {
+  const tokens = state.q.toLowerCase().split(/\s+/).filter(Boolean);
+  const works = p.w.map((w) => `<span class="work-tag">${esc(w)}</span>`).join("");
+  const faved = bookmarks.has(p.fn);
+  return `<article class="card" tabindex="0" role="button" aria-label="查看 ${esc(p.fn)} 详情" data-fn="${esc(p.fn)}" style="--cat-color:${CAT_DOTS[p.c] || "#aeaeb2"}">
+    <button type="button" class="fav-btn ${faved ? "faved" : ""}" data-fav="${esc(p.fn)}" aria-label="${faved ? "取消收藏" : "收藏"} ${esc(p.fn)}" aria-pressed="${faved}">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.7C6 16.6 3 13.4 3 9.9 3 7.2 5 5 7.7 5c1.7 0 3.3.9 4.3 2.4C13 5.9 14.6 5 16.3 5 19 5 21 7.2 21 9.9c0 3.5-3 6.7-9 10.8z"/></svg>
+    </button>
+    <div class="card-top">
+      <img class="avatar" src="${avatarUrl(p)}" alt="${esc(p.o)} 的头像" loading="lazy" decoding="async" onerror="this.style.visibility='hidden'">
+      <div class="card-id">
+        <div class="repo-name"><span class="owner-name">${esc(p.o)} /</span> ${highlight(p.n, tokens)}</div>
+        <div class="author-line">${esc(p.c)}</div>
+      </div>
+      <span class="badges">${p.ov ? '<span class="badge badge-10k">万星+</span>' : ""}${p.ft ? '<span class="badge badge-off">官方</span>' : ""}</span>
+    </div>
+    <p class="desc">${highlight(p.d, tokens)}</p>
+    <div class="pro-line"><span class="field-chip">${esc(p.f)}</span>${works}</div>
+    <div class="card-foot">
+      <span class="star">★ ${fmt(p.s)}</span>
+      <span>⑂ ${fmt(p.k)}</span>
+      ${p.l ? `<span><span class="lang-dot"></span>${esc(p.l)}</span>` : ""}
+      <a class="card-gh" href="${repoUrl(p)}" target="_blank" rel="noopener" data-gh>GitHub ↗</a>
+    </div>
+  </article>`;
+}
+function render(force) {
+  const sig = stateSig();
+  if (force || sig !== lastSig) { lastList = filtered(); lastSig = sig; state.rendered = 0; grid().innerHTML = ""; }
+  const list = lastList;
+  const g = grid();
+  g.classList.toggle("list", state.view === "list");
+  const next = Math.min(state.shown, list.length);
+  if (next > (state.rendered || 0)) {
+    const frag = document.createElement("div");
+    frag.innerHTML = list.slice(state.rendered || 0, next).map(cardHTML).join("");
+    while (frag.firstChild) g.appendChild(frag.firstChild);
+    state.rendered = next;
+  }
+  $("#empty").hidden = list.length > 0;
+  $("#more-btn").style.display = list.length > state.shown ? "" : "none";
+  const mode = state.q ? (state.strict ? " · 精确模式" : " · 容错搜索（按相关度）") : "";
+  $("#result-line").textContent = `共找到 ${list.length.toLocaleString()} 个项目 · 已展示 ${(state.rendered || 0).toLocaleString()} 个${mode}`;
+  renderActiveFilters();
+  syncUrl();
+}
+function renderActiveFilters() {
+  const chips = [];
+  if (state.cat !== "all") chips.push(["cat", "大类：" + state.cat]);
+  if (state.field !== "all") chips.push(["field", "领域：" + state.field]);
+  if (state.over10k) chips.push(["over10k", "万星+"]);
+  if (state.featured) chips.push(["featured", "官方"]);
+  if (state.fav) chips.push(["fav", "我的收藏"]);
+  if (state.q) chips.push(["q", "搜索：" + state.q]);
+  $("#active-filters").innerHTML = chips.map(([k, v]) =>
+    `<button type="button" class="af-chip" data-clear="${k}" aria-label="清除筛选 ${esc(v)}">${esc(v)} ✕</button>`).join("");
+  document.querySelectorAll("[data-clear]").forEach((b) => b.addEventListener("click", () => {
+    const k = b.dataset.clear;
+    if (k === "cat") state.cat = "all";
+    if (k === "field") { state.field = "all"; $("#field-filter").value = "all"; }
+    if (k === "over10k") { state.over10k = false; $("#over10k-only").checked = false; }
+    if (k === "featured") { state.featured = false; $("#featured-only").checked = false; }
+    if (k === "fav") { state.fav = false; $("#fav-only").checked = false; }
+    if (k === "q") { state.q = ""; $("#search").value = ""; }
+    state.shown = PAGE; renderPills(); render(true);
+  }));
+}
 function renderPills() {
-  $("#pills").innerHTML = CATEGORIES.map((c) => {
-    const n = c.id === "all" ? projects.length : projects.filter((p) => p.category === c.id).length;
-    return `<button type="button" aria-pressed="${state.cat === c.id}" class="pill ${state.cat === c.id ? "active" : ""}" data-cat="${esc(c.id)}">${esc(c.label)}<small>${n}</small></button>`;
+  const counts = {};
+  projects.forEach((p) => { counts[p.c] = (counts[p.c] || 0) + 1; });
+  const cats = ["all", ...Object.keys(counts).sort((a, b) => counts[b] - counts[a])];
+  $("#pills").innerHTML = cats.map((c) => {
+    const n = c === "all" ? projects.length : counts[c];
+    const label = c === "all" ? "全部" : c;
+    return `<button type="button" aria-pressed="${state.cat === c}" class="pill ${state.cat === c ? "active" : ""}" data-cat="${esc(c)}">${esc(label)}<small>${n}</small></button>`;
   }).join("");
   document.querySelectorAll(".pill").forEach((b) =>
-    b.addEventListener("click", () => { state.cat = b.dataset.cat; state.shown = PAGE; renderPills(); render(); })
-  );
+    b.addEventListener("click", () => { state.cat = b.dataset.cat; state.shown = PAGE; renderPills(); render(true); }));
 }
 function renderFieldOptions() {
   const counts = {};
-  projects.forEach((p) => { counts[p.field] = (counts[p.field] || 0) + 1; });
-  const fields = Object.keys(FIELD_COLORS).filter((f) => counts[f]);
-  fields.sort((a, b) => counts[b] - counts[a]);
+  projects.forEach((p) => { counts[p.f] = (counts[p.f] || 0) + 1; });
+  const fields = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
   $("#field-filter").innerHTML = `<option value="all">全部专业领域</option>` +
     fields.map((f) => `<option value="${esc(f)}" ${state.field === f ? "selected" : ""}>${esc(f)} · ${counts[f]}</option>`).join("");
 }
-function card(p, i) {
-  const tokens = state.q.toLowerCase().split(/\s+/).filter(Boolean);
-  const tags = (p.topics || []).slice(0, 2).map((t) => `<span class="tag">${esc(t)}</span>`).join("");
-  const works = (p.work_skills || []).map((w) => `<span class="work-tag">${esc(w)}</span>`).join("");
-  return `<a class="card" style="--cat-color:${catColor(p.category)};--field-color:${fieldColor(p.field)};--d:${(i % 24) * 28}ms" href="${esc(p.url)}" target="_blank" rel="noopener">
-    <div class="card-top">
-      <img class="avatar" src="${esc(p.avatar_url)}" alt="${esc(p.owner)} 的头像" loading="lazy" decoding="async" onerror="this.style.visibility='hidden'">
-      <div class="card-id">
-        <div class="repo-name"><span class="owner-name">${esc(p.owner)} /</span> ${highlight(p.name, tokens)}</div>
-        <div class="author-line">作者 · ${esc(p.owner)}</div>
-      </div>
-      <span class="badges">${p.over10k ? '<span class="badge badge-10k">万星+</span>' : ""}${p.featured ? '<span class="badge badge-off">官方</span>' : ""}</span>
-    </div>
-    <p class="desc">${highlight(p.description, tokens)}</p>
-    <div class="pro-line">
-      <span class="field-chip">${esc(p.field || "其他专业")}</span>${works}
-    </div>
-    ${tags ? `<div class="tags">${tags}</div>` : ""}
-    <div class="card-foot">
-      <span class="star">★ ${fmt(p.stars)}</span>
-      <span>⑂ ${fmt(p.forks)}</span>
-      ${p.language ? `<span><span class="lang-dot"></span>${esc(p.language)}</span>` : ""}
-      <span class="cat-chip">${catLabel(p.category)}</span>
-    </div>
-  </a>`;
+function renderCollections() {
+  const defs = [
+    { name: "万星精选", desc: "Star 过万的全站头部仓库", color: "#0071e3", apply: () => { state.over10k = true; $("#over10k-only").checked = true; }, count: () => projects.filter((p) => p.ov).length },
+    { name: "官方出品", desc: "官方组织维护的权威实现", color: "#1d1d1f", apply: () => { state.featured = true; $("#featured-only").checked = true; }, count: () => projects.filter((p) => p.ft).length },
+    { name: "AI 智能体", desc: "Agent 框架与大模型应用", color: "#7d7aff", apply: () => { state.cat = "AI智能体与大模型"; }, count: () => projects.filter((p) => p.c === "AI智能体与大模型").length },
+    { name: "Skills 技能库", desc: "给 AI 助手装上的专业技能", color: "#ff6b4a", apply: () => { state.cat = "Skills"; }, count: () => projects.filter((p) => p.c === "Skills").length },
+    { name: "学习路线", desc: "教程、路线图与 Awesome 清单", color: "#ac8e68", apply: () => { state.cat = "学习资源与Awesome"; }, count: () => projects.filter((p) => p.c === "学习资源与Awesome").length },
+    { name: "安全工具箱", desc: "渗透、审计与防护工具", color: "#ff453a", apply: () => { state.field = "网络安全"; $("#field-filter").value = "网络安全"; }, count: () => projects.filter((p) => p.f === "网络安全").length },
+  ];
+  $("#collections").innerHTML = defs.map((d, i) =>
+    `<button type="button" class="collection-card" data-col="${i}" style="--col-color:${d.color}">
+       <span class="collection-name">${esc(d.name)}</span>
+       <span class="collection-desc">${esc(d.desc)}</span>
+       <span class="collection-count">${d.count().toLocaleString()} 个项目 →</span>
+     </button>`).join("");
+  document.querySelectorAll("[data-col]").forEach((b) => b.addEventListener("click", () => {
+    defs[+b.dataset.col].apply();
+    state.shown = PAGE; renderPills(); render(true);
+    $("#explore").scrollIntoView({ behavior: "smooth" });
+  }));
 }
-function render() {
-  const list = filtered();
-  const slice = list.slice(0, state.shown);
-  $("#grid").innerHTML = slice.map(card).join("");
-  $("#empty").hidden = list.length > 0;
-  $("#more-btn").style.display = list.length > state.shown ? "" : "none";
-  const mode = state.q ? (state.fuzzy ? " · 模糊搜索（按相关度排序）" : " · 精确搜索") : "";
-  $("#result-line").textContent = `共找到 ${list.length} 个项目 · 已展示 ${slice.length} 个${mode}`;
+function updateFavUI() {
+  const n = bookmarks.size;
+  const badge = $("#fav-count");
+  badge.hidden = n === 0;
+  badge.textContent = n;
+}
+function toggleBookmark(fn) {
+  if (bookmarks.has(fn)) bookmarks.delete(fn); else bookmarks.add(fn);
+  saveBookmarks(); updateFavUI();
+  document.querySelectorAll(`[data-fav="${CSS.escape(fn)}"]`).forEach((b) => {
+    const on = bookmarks.has(fn);
+    b.classList.toggle("faved", on); b.setAttribute("aria-pressed", on);
+  });
+  const df = $("#drawer-fav");
+  if (df && df.dataset.fn === fn) df.classList.toggle("faved", bookmarks.has(fn));
+  if (state.fav) { state.shown = Math.max(state.shown, PAGE); render(true); }
 }
 
-/* ---------------- init / events ---------------- */
-let debounce = null;
-function onSearch(v) {
-  clearTimeout(debounce);
-  debounce = setTimeout(() => { state.q = v.trim(); state.shown = PAGE; render(); }, 120);
+/* ---------------- detail drawer ---------------- */
+let lastFocus = null;
+function openDrawer(p) {
+  lastFocus = document.activeElement;
+  const d = $("#drawer"), body = $("#drawer-body");
+  $("#drawer-avatar").src = avatarUrl(p);
+  $("#drawer-title").textContent = p.n;
+  $("#drawer-owner").textContent = p.o + " · " + p.fn;
+  const favBtn = $("#drawer-fav");
+  favBtn.dataset.fn = p.fn;
+  favBtn.classList.toggle("faved", bookmarks.has(p.fn));
+  favBtn.setAttribute("aria-pressed", bookmarks.has(p.fn));
+  const related = projects.filter((x) => x.fn !== p.fn && (x.c === p.c || x.f === p.f))
+    .sort((a, b) => b.s - a.s).slice(0, 5);
+  const url = safeGhUrl(repoUrl(p));
+  body.innerHTML = `
+    <p class="drawer-desc">${esc(p.d)}</p>
+    <dl class="meta-grid">
+      <div class="meta-item"><dt>Stars</dt><dd>★ ${p.s.toLocaleString()}</dd></div>
+      <div class="meta-item"><dt>Forks</dt><dd>⑂ ${p.k.toLocaleString()}</dd></div>
+      <div class="meta-item"><dt>主要语言</dt><dd>${esc(p.l || "—")}</dd></div>
+      <div class="meta-item"><dt>最近更新</dt><dd>${esc(p.u || "—")}</dd></div>
+      <div class="meta-item"><dt>大类</dt><dd>${esc(p.c)}</dd></div>
+      <div class="meta-item"><dt>专业领域</dt><dd>${esc(p.f)}</dd></div>
+    </dl>
+    <div class="drawer-tags">
+      <span class="field-chip">${esc(p.f)}</span>
+      ${p.w.map((w) => `<span class="work-tag">${esc(w)}</span>`).join("")}
+      ${p.t.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}
+      ${p.ov ? '<span class="badge badge-10k">万星+</span>' : ""}${p.ft ? '<span class="badge badge-off">官方</span>' : ""}
+    </div>
+    <div class="drawer-cta">
+      ${url ? `<a class="primary-btn" href="${url}" target="_blank" rel="noopener">在 GitHub 打开 ↗</a>` : ""}
+    </div>
+    ${related.length ? `<h4 class="related-title">相关项目</h4>` + related.map((r) =>
+      `<button type="button" class="related-item" data-related="${esc(r.fn)}"><span class="r-name">${esc(r.fn)}</span><span class="r-stars">★ ${fmt(r.s)}</span></button>`).join("") : ""}`;
+  body.querySelectorAll("[data-related]").forEach((b) => b.addEventListener("click", () => {
+    const rp = projects.find((x) => x.fn === b.dataset.related);
+    if (rp) { openDrawer(rp); body.scrollTop = 0; }
+  }));
+  const bd = $("#drawer-backdrop");
+  bd.hidden = false; d.hidden = false;
+  requestAnimationFrame(() => { bd.classList.add("show"); d.classList.add("open"); });
+  document.body.style.overflow = "hidden";
+  $("#drawer-close").focus();
 }
-async function init() {
-  try {
-    const man = await (await fetch("data/manifest.json")).json();
-    const chunks = await Promise.all(man.files.map((f) => fetch("data/" + f).then((r) => r.json())));
-    projects = chunks.flat();
-  } catch (e) {
-    $("#result-line").textContent = "数据加载失败，请刷新重试。";
-    return;
+function closeDrawer() {
+  const d = $("#drawer"), bd = $("#drawer-backdrop");
+  d.classList.remove("open"); bd.classList.remove("show");
+  document.body.style.overflow = "";
+  setTimeout(() => { d.hidden = true; bd.hidden = true; }, 300);
+  if (lastFocus && lastFocus.focus) lastFocus.focus();
+}
+$("#drawer-close").addEventListener("click", closeDrawer);
+$("#drawer-backdrop").addEventListener("click", closeDrawer);
+$("#drawer-fav").addEventListener("click", (e) => toggleBookmark(e.currentTarget.dataset.fn));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    /* topmost layer first: the drawer can sit above a still-fading palette */
+    if (!$("#drawer").hidden) closeDrawer();
+    else if (!$("#palette-backdrop").hidden) closePalette();
+    else if ($("#toolbar").classList.contains("sheet-open")) closeSheet();
   }
-  buildCategories();
-  $("#stat-total").textContent = projects.length.toLocaleString();
-  const o10 = $("#stat-over10k");
-  if (o10) o10.textContent = projects.filter((p) => p.over10k).length.toLocaleString();
-  $("#stat-authors").textContent = new Set(projects.map((p) => p.owner.toLowerCase())).size.toLocaleString();
-  $("#stat-cats").textContent = new Set(projects.map((p) => p.field)).size;
-  renderPills();
-  renderFieldOptions();
-  render();
+  if (e.key === "Tab" && !$("#drawer").hidden) {
+    const f = $("#drawer").querySelectorAll("button, a[href], [tabindex]");
+    if (!f.length) return;
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+});
+
+/* ---------------- command palette ---------------- */
+let palSel = 0, palItems = [];
+function extrasFlat() {
+  const ex = window.ATLAS_EXTRAS || {};
+  const out = [];
+  (ex.nav || []).forEach((g) => g.items.forEach((it) => out.push({ kind: "AI 导航", name: it.name, sub: (it.org || "") + " · " + (it.slogan || ""), url: it.url })));
+  (ex.forums || []).forEach((g) => g.items.forEach((it) => out.push({ kind: "社区", name: it.name, sub: it.slogan || it.desc || "", url: it.url })));
+  (ex.blogs || []).forEach((it) => out.push({ kind: "博客", name: it.title || it.name, sub: it.src || it.source || "", url: it.url }));
+  (ex.papers || []).forEach((it) => out.push({ kind: "论文", name: it.title || it.name, sub: (it.authors || "") + " " + (it.year || ""), url: it.url }));
+  return out;
 }
-$("#search").addEventListener("input", (e) => onSearch(e.target.value));
-$("#sort").addEventListener("change", (e) => { state.sort = e.target.value; state.shuffle = false; state.shown = PAGE; render(); });
-$("#field-filter").addEventListener("change", (e) => { state.field = e.target.value; state.shown = PAGE; render(); });
-$("#featured-only").addEventListener("change", (e) => { state.featured = e.target.checked; state.shown = PAGE; render(); });
-$("#over10k-only").addEventListener("change", (e) => { state.over10k = e.target.checked; state.shown = PAGE; render(); });
-$("#fuzzy-only").addEventListener("change", (e) => { state.fuzzy = e.target.checked; state.shown = PAGE; render(); });
+function paletteSearch(q) {
+  const groups = [];
+  const projs = searchProjects(q, 6);
+  if (projs.length) groups.push({ title: "项目", items: projs.map((p) => ({ kind: "project", p, name: p.fn, sub: p.d, meta: "★ " + fmt(p.s) })) });
+  const tokens = q.toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.length) {
+    const hits = extrasFlat().filter((it) => {
+      const hay = (it.name + " " + it.sub).toLowerCase();
+      return tokens.every((t) => hay.includes(t)) || tokens.some((t) => {
+        let ti = 0; for (let i = 0; i < hay.length && ti < t.length; i++) if (hay[i] === t[ti]) ti++;
+        return ti === t.length && t.length >= 3;
+      });
+    }).slice(0, 8);
+    const byKind = {};
+    hits.forEach((h) => { (byKind[h.kind] = byKind[h.kind] || []).push(h); });
+    Object.keys(byKind).forEach((k) => groups.push({ title: k, items: byKind[k].map((h) => ({ kind: "link", name: h.name, sub: h.sub, url: h.url, meta: "↗" })) }));
+  }
+  return groups;
+}
+function renderPalette(q) {
+  const box = $("#palette-results");
+  const groups = q.trim() ? paletteSearch(q) : [{ title: "试试搜", items: [
+    { kind: "hint", name: "playwright", sub: "浏览器自动化框架", meta: "" },
+    { kind: "hint", name: "ollama", sub: "本地跑大模型", meta: "" },
+    { kind: "hint", name: "渗透测试", sub: "按工作技能搜索", meta: "" },
+    { kind: "hint", name: "skills", sub: "Agent Skills 技能库", meta: "" },
+  ] }];
+  palItems = [];
+  let html = "";
+  groups.forEach((g) => {
+    html += `<div class="pal-group">${esc(g.title)}</div>`;
+    g.items.forEach((it) => {
+      const idx = palItems.length; palItems.push(it);
+      html += `<button type="button" class="pal-item ${idx === palSel ? "sel" : ""}" role="option" aria-selected="${idx === palSel}" data-pal="${idx}">
+        <span class="p-main"><span class="p-name">${esc(it.name)}</span><br><span class="p-sub">${esc(it.sub || "")}</span></span>
+        <span class="p-meta">${esc(it.meta || "")}</span></button>`;
+    });
+  });
+  box.innerHTML = html || `<div class="pal-empty">没有找到「${esc(q)}」相关的结果，换个关键词试试。</div>`;
+  box.querySelectorAll("[data-pal]").forEach((b) => b.addEventListener("click", () => activatePal(+b.dataset.pal)));
+}
+function activatePal(i) {
+  const it = palItems[i];
+  if (!it) return;
+  if (it.kind === "project") { closePalette(); openDrawer(it.p); }
+  else if (it.kind === "link") { window.open(it.url, "_blank", "noopener"); }
+  else if (it.kind === "hint") { $("#palette-input").value = it.name; palSel = 0; renderPalette(it.name); }
+}
+function openPalette() {
+  lastFocus = document.activeElement;
+  const bd = $("#palette-backdrop");
+  bd.hidden = false;
+  requestAnimationFrame(() => bd.classList.add("show"));
+  document.body.style.overflow = "hidden";
+  palSel = 0;
+  renderPalette("");
+  $("#palette-input").value = "";
+  $("#palette-input").focus();
+}
+function closePalette() {
+  const bd = $("#palette-backdrop");
+  bd.classList.remove("show");
+  document.body.style.overflow = "";
+  setTimeout(() => { bd.hidden = true; }, 180);
+  if (lastFocus && lastFocus.focus) lastFocus.focus();
+}
+$("#palette-btn").addEventListener("click", openPalette);
+$("#kbd-btn").addEventListener("click", openPalette);
+$("#palette-backdrop").addEventListener("click", (e) => { if (e.target === e.currentTarget) closePalette(); });
+$("#palette-input").addEventListener("input", (e) => { palSel = 0; renderPalette(e.target.value); });
+$("#palette-input").addEventListener("keydown", (e) => {
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    palSel = Math.max(0, Math.min(palItems.length - 1, palSel + (e.key === "ArrowDown" ? 1 : -1)));
+    renderPalette($("#palette-input").value);
+    const el = document.querySelector(`[data-pal="${palSel}"]`);
+    if (el) el.scrollIntoView({ block: "nearest" });
+  } else if (e.key === "Enter") { e.preventDefault(); activatePal(palSel); }
+});
+document.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+    e.preventDefault();
+    if ($("#palette-backdrop").hidden) openPalette(); else closePalette();
+  }
+});
+
+/* ---------------- theme ---------------- */
+function applyTheme(pref) {
+  const dark = pref === "dark" || (pref === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  document.documentElement.dataset.themePref = pref;
+  try { localStorage.setItem("atlas.theme", pref); } catch (e) {}
+  const label = pref === "auto" ? "跟随系统" : pref === "dark" ? "深色" : "浅色";
+  $("#theme-btn").setAttribute("aria-label", "切换主题（当前" + label + "）");
+  const mc = document.querySelector('meta[name="theme-color"]');
+  if (mc) mc.content = dark ? "#0b0e14" : "#f5f5f7";
+  if (window.ScrollTrigger) setTimeout(() => window.ScrollTrigger.refresh(), 60);
+}
+$("#theme-btn").addEventListener("click", () => {
+  const order = ["auto", "light", "dark"];
+  const cur = document.documentElement.dataset.themePref || "auto";
+  applyTheme(order[(order.indexOf(cur) + 1) % order.length]);
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if ((document.documentElement.dataset.themePref || "auto") === "auto") applyTheme("auto");
+});
+
+/* ---------------- mobile nav + filter sheet ---------------- */
+$("#menu-btn").addEventListener("click", () => {
+  const nav = $("#topnav"), open = nav.classList.toggle("open");
+  $("#menu-btn").setAttribute("aria-expanded", open);
+});
+document.querySelectorAll("#topnav a").forEach((a) => a.addEventListener("click", () => {
+  $("#topnav").classList.remove("open");
+  $("#menu-btn").setAttribute("aria-expanded", "false");
+}));
+function openSheet() {
+  $("#toolbar").classList.add("sheet-open");
+  const bd = $("#sheet-backdrop");
+  bd.hidden = false;
+  requestAnimationFrame(() => bd.classList.add("show"));
+}
+function closeSheet() {
+  $("#toolbar").classList.remove("sheet-open");
+  const bd = $("#sheet-backdrop");
+  bd.classList.remove("show");
+  setTimeout(() => { bd.hidden = true; }, 200);
+}
+$("#sheet-btn").addEventListener("click", openSheet);
+$("#sheet-done").addEventListener("click", closeSheet);
+$("#sheet-backdrop").addEventListener("click", closeSheet);
+
+/* ---------------- controls ---------------- */
+function applyStateToControls() {
+  $("#search").value = state.q;
+  $("#sort").value = state.sort;
+  $("#over10k-only").checked = state.over10k;
+  $("#featured-only").checked = state.featured;
+  $("#fav-only").checked = state.fav;
+  $("#strict-only").checked = state.strict;
+  $("#field-filter").value = state.field;
+  $("#view-grid").setAttribute("aria-pressed", state.view === "grid");
+  $("#view-list").setAttribute("aria-pressed", state.view === "list");
+}
+let debounce = null;
+$("#search").addEventListener("input", (e) => {
+  clearTimeout(debounce);
+  debounce = setTimeout(() => { state.q = e.target.value.trim(); state.shown = PAGE; render(true); }, 120);
+});
+$("#sort").addEventListener("change", (e) => { state.sort = e.target.value; state.shuffle = false; state.shown = PAGE; render(true); });
+$("#field-filter").addEventListener("change", (e) => { state.field = e.target.value; state.shown = PAGE; render(true); });
+$("#featured-only").addEventListener("change", (e) => { state.featured = e.target.checked; state.shown = PAGE; render(true); });
+$("#over10k-only").addEventListener("change", (e) => { state.over10k = e.target.checked; state.shown = PAGE; render(true); });
+$("#fav-only").addEventListener("change", (e) => { state.fav = e.target.checked; state.shown = PAGE; render(true); });
+$("#strict-only").addEventListener("change", (e) => { state.strict = e.target.checked; state.shown = PAGE; render(true); });
+$("#fav-btn").addEventListener("click", () => {
+  state.fav = !state.fav;
+  $("#fav-only").checked = state.fav;
+  state.shown = PAGE; render(true);
+  $("#explore").scrollIntoView({ behavior: "smooth" });
+});
+$("#view-grid").addEventListener("click", () => setView("grid"));
+$("#view-list").addEventListener("click", () => setView("list"));
+function setView(v) {
+  state.view = v;
+  try { localStorage.setItem("atlas.view", v); } catch (e) {}
+  applyStateToControls(); render();
+}
 $("#more-btn").addEventListener("click", () => { state.shown += PAGE; render(); });
-/* auto-load more cards as the sentinel scrolls into view (button stays as fallback) */
 const sentinel = $("#load-sentinel");
 if (sentinel && "IntersectionObserver" in window) {
   new IntersectionObserver((entries) => {
     if (!entries.some((en) => en.isIntersecting)) return;
-    const total = filtered().length;
-    if (total > state.shown) { state.shown += PAGE; render(); }
+    if (lastList && lastList.length > state.shown) { state.shown += PAGE; render(); }
   }, { rootMargin: "600px 0px" }).observe(sentinel);
 }
 $("#reset-btn").addEventListener("click", () => {
   clearTimeout(debounce);
-  state = { cat: "all", field: "all", q: "", sort: "stars", featured: false, over10k: false, fuzzy: false, shown: PAGE };
-  $("#search").value = ""; $("#sort").value = "stars"; $("#featured-only").checked = false;
-  $("#fuzzy-only").checked = false; $("#over10k-only").checked = false; $("#field-filter").value = "all";
-  renderPills(); render();
+  Object.assign(state, { q: "", cat: "all", field: "all", over10k: false, featured: false, fav: false, strict: false, sort: "stars", shown: PAGE, shuffle: false });
+  applyStateToControls(); renderPills(); render(true);
 });
 $("#shuffle-btn").addEventListener("click", () => {
   projects.forEach((p) => { p._rand = Math.random(); });
-  state.shuffle = true;
-  state.shown = PAGE;
-  render();
-  document.querySelector("#explore").scrollIntoView({ behavior: "smooth" });
+  state.shuffle = true; state.shown = PAGE; render(true);
+  $("#explore").scrollIntoView({ behavior: "smooth" });
+});
+/* grid interactions: card click -> drawer; fav button & GitHub link stop there */
+grid().addEventListener("click", (e) => {
+  const fav = e.target.closest("[data-fav]");
+  if (fav) { e.stopPropagation(); toggleBookmark(fav.dataset.fav); return; }
+  if (e.target.closest("[data-gh]")) return;
+  const card = e.target.closest(".card");
+  if (card) {
+    const p = projects.find((x) => x.fn === card.dataset.fn);
+    if (p) openDrawer(p);
+  }
+});
+grid().addEventListener("keydown", (e) => {
+  if ((e.key === "Enter" || e.key === " ") && e.target.classList.contains("card")) {
+    e.preventDefault();
+    const p = projects.find((x) => x.fn === e.target.dataset.fn);
+    if (p) openDrawer(p);
+  }
 });
 const toTop = $("#to-top");
 window.addEventListener("scroll", () => { toTop.classList.toggle("show", window.scrollY > 700); }, { passive: true });
 toTop.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
-document.addEventListener("keydown", (e) => {
-  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); $("#search").focus(); }
-});
-/* shorter search placeholder on narrow screens so it is never truncated */
 const mqNarrow = window.matchMedia("(max-width: 767.5px)");
 function applyPlaceholder() {
   $("#search").placeholder = mqNarrow.matches
@@ -246,4 +583,43 @@ function applyPlaceholder() {
 }
 if (mqNarrow.addEventListener) mqNarrow.addEventListener("change", applyPlaceholder);
 applyPlaceholder();
+
+/* ---------------- data loading (1 request, with retry) ---------------- */
+async function fetchIndex(attempt) {
+  const r = await fetch("data/index.json", { cache: "default" });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+async function init() {
+  grid().innerHTML = Array.from({ length: 6 }, () => '<div class="skel" aria-hidden="true"></div>').join("");
+  let data = null, lastErr = null;
+  for (let i = 0; i < 3 && !data; i++) {
+    try { data = await fetchIndex(i); } catch (e) { lastErr = e; await new Promise((r) => setTimeout(r, 600 * (i + 1))); }
+  }
+  if (!data) {
+    grid().innerHTML = "";
+    $("#result-line").innerHTML = '目录加载失败（网络问题）。<button type="button" class="ghost-btn" onclick="location.reload()">重试</button>';
+    return;
+  }
+  generatedAt = data.generated_at || "";
+  projects = data.items;
+  const t0 = performance.now();
+  projects.forEach(buildSearchText);
+  window.__atlasIndexMs = Math.round(performance.now() - t0);
+  readUrl();
+  $("#stat-total").textContent = projects.length.toLocaleString();
+  $("#stat-over10k").textContent = projects.filter((p) => p.ov).length.toLocaleString();
+  $("#stat-authors").textContent = new Set(projects.map((p) => p.o.toLowerCase())).size.toLocaleString();
+  $("#stat-cats").textContent = new Set(projects.map((p) => p.f)).size;
+  $("#foot-total").textContent = projects.length.toLocaleString();
+  $("#data-updated").textContent = generatedAt || "—";
+  renderPills();
+  renderFieldOptions();
+  applyStateToControls();
+  renderCollections();
+  updateFavUI();
+  applyTheme(document.documentElement.dataset.themePref || "auto");
+  render(true);
+  if (window.ScrollTrigger) setTimeout(() => window.ScrollTrigger.refresh(), 300);
+}
 init();

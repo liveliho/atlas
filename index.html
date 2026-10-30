@@ -5,16 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Atlas — GitHub 上值得收藏的项目</title>
 <meta name="description" content="Atlas 集结 GitHub 上真正有用的项目：5,320 个万星级仓库、Agent Skills、MCP、AI 工具与开发神器，共 6,231 个，全部标注作者、专业领域与工作技能。">
+<link rel="canonical" href="https://liveliho.github.io/atlas/">
 <meta name="theme-color" content="#f5f5f7">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Atlas — GitHub 上值得收藏的项目">
-<meta property="og:description" content="6,231 个精选项目 · 其中 5,320 个 Star 过万。支持模糊搜索、大类与专业领域筛选。">
+<meta property="og:description" content="6,231 个精选项目 · 其中 5,320 个 Star 过万。支持全站搜索、大类与专业领域筛选、收藏与对比。">
 <meta property="og:url" content="https://liveliho.github.io/atlas/">
 <meta property="og:image" content="https://liveliho.github.io/atlas/assets/logo-512.png">
 <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/favicon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","name":"Atlas","url":"https://liveliho.github.io/atlas/","description":"集结 GitHub 上真正有用的项目：万星仓库、Agent Skills、MCP 与 AI 工具，共 6,231 个。","potentialAction":{"@type":"SearchAction","target":"https://liveliho.github.io/atlas/?q={query}","query-input":"required name=query"}}
+</script>
+<script>
+/* theme: set before first paint to avoid a flash. Stored choice wins,
+   otherwise follow the system. Values: auto | light | dark. */
+(function () {
+  var pref = "auto";
+  try { pref = localStorage.getItem("atlas.theme") || "auto"; } catch (e) {}
+  var dark = pref === "dark" || (pref === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  document.documentElement.dataset.themePref = pref;
+})();
+</script>
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -30,7 +45,7 @@
       <img class="brand-mark" src="assets/logo.svg" alt="" aria-hidden="true" width="34" height="34">
       <span class="brand-name">Atlas</span>
     </a>
-    <nav class="topnav" aria-label="主导航">
+    <nav class="topnav" id="topnav" aria-label="主导航">
       <a href="#explore">探索</a>
       <a href="#ai-nav">AI 导航</a>
       <a href="#community">社区</a>
@@ -38,6 +53,21 @@
       <a href="#method">收录标准</a>
       <a class="nav-gh" href="https://github.com/liveliho/atlas" target="_blank" rel="noopener">GitHub ↗</a>
     </nav>
+    <div class="top-actions">
+      <button id="palette-btn" type="button" class="icon-btn" aria-label="打开全站搜索（Ctrl/⌘ + K）">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg>
+      </button>
+      <button id="fav-btn" type="button" class="icon-btn" aria-label="查看我的收藏">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.7C6 16.6 3 13.4 3 9.9 3 7.2 5 5 7.7 5c1.7 0 3.3.9 4.3 2.4C13 5.9 14.6 5 16.3 5 19 5 21 7.2 21 9.9c0 3.5-3 6.7-9 10.8z"/></svg>
+        <span class="fav-count" id="fav-count" hidden>0</span>
+      </button>
+      <button id="theme-btn" type="button" class="icon-btn" aria-label="切换主题（当前跟随系统）">
+        <svg class="ic-auto" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>
+      </button>
+      <button id="menu-btn" type="button" class="icon-btn menu-btn" aria-label="打开菜单" aria-expanded="false" aria-controls="topnav">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
   </div>
 </header>
 
@@ -45,22 +75,23 @@
   <section class="hero">
     <p class="kicker">GitHub · Skills · MCP · Open Source</p>
     <h1>好项目，<br class="br-m">一图尽览。</h1>
-    <p class="hero-desc">Atlas 把 GitHub 上真正有用的项目集结在一起：<strong>5,320 个 Star 过万的仓库</strong>，加上精选的 Agent Skills 与 MCP 工具。每个项目都标注作者、专业领域与具体工作技能，它是给谁用的、解决什么工作，一眼看清。</p>
+    <p class="hero-desc">Atlas 把 GitHub 上真正有用的项目集结在一起：<strong>5,320 个 Star 过万的仓库</strong>，加上精选的 Agent Skills 与 MCP 工具。每个项目都标注作者、专业领域与具体工作技能。</p>
+    <div class="hero-search" id="hero-search">
+      <label class="sr-only" for="search">搜索项目、作者、专业或工作技能</label>
+      <span class="search-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg>
+      </span>
+      <input id="search" type="search" placeholder="搜项目、作者、技能……比如 playwright、营销、渗透测试" autocomplete="off">
+      <button type="button" class="kbd-btn" id="kbd-btn" aria-label="打开全站搜索面板">⌘K</button>
+    </div>
+    <p class="search-hint">拼写记不准也没关系，默认就是容错搜索；按 <strong>⌘K</strong> 可一次搜遍项目、AI 导航、社区与阅读。</p>
     <div class="stats" role="list" aria-label="站点统计">
       <div class="stat" role="listitem"><span class="stat-num" id="stat-total">—</span><span class="stat-label">收录项目</span></div>
       <div class="stat" role="listitem"><span class="stat-num" id="stat-over10k">—</span><span class="stat-label">万星+ 项目</span></div>
       <div class="stat" role="listitem"><span class="stat-num" id="stat-authors">—</span><span class="stat-label">作者 / 组织</span></div>
       <div class="stat" role="listitem"><span class="stat-num" id="stat-cats">—</span><span class="stat-label">专业领域</span></div>
     </div>
-    <div class="hero-search">
-      <label class="sr-only" for="search">搜索项目、作者、专业或工作技能</label>
-      <span class="search-icon" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg>
-      </span>
-      <input id="search" type="search" placeholder="搜项目、作者、技能……比如 playwright、营销、渗透测试" autocomplete="off">
-      <kbd aria-hidden="true">⌘K</kbd>
-    </div>
-    <p class="search-hint">记不准拼写？打开下方<strong>模糊搜索</strong>，输 <code>plywrght</code>、<code>sklls</code> 也能找到。</p>
+    <div class="collections" id="collections" aria-label="精选合集"></div>
   </section>
 
   <section id="showcase" class="showcase" aria-label="万星精选">
@@ -98,14 +129,25 @@
   </section>
 
   <section id="explore" class="explore">
-    <div class="toolbar">
+    <div class="explore-head">
+      <h2 class="explore-title">探索项目</h2>
+      <div class="explore-tools">
+        <div class="view-switch" role="group" aria-label="视图切换">
+          <button type="button" id="view-grid" class="view-btn" aria-pressed="true">网格</button>
+          <button type="button" id="view-list" class="view-btn" aria-pressed="false">列表</button>
+        </div>
+        <button type="button" id="sheet-btn" class="ghost-btn sheet-btn">筛选</button>
+      </div>
+    </div>
+    <div class="toolbar" id="toolbar">
       <div class="pills-scroll">
         <div class="pills" id="pills" role="group" aria-label="按大类筛选"></div>
       </div>
       <div class="controls">
         <label class="toggle"><input type="checkbox" id="over10k-only"><span class="track" aria-hidden="true"></span>仅看万星+</label>
         <label class="toggle"><input type="checkbox" id="featured-only"><span class="track" aria-hidden="true"></span>仅看官方</label>
-        <label class="toggle"><input type="checkbox" id="fuzzy-only"><span class="track" aria-hidden="true"></span>模糊搜索</label>
+        <label class="toggle"><input type="checkbox" id="fav-only"><span class="track" aria-hidden="true"></span>我的收藏</label>
+        <label class="toggle"><input type="checkbox" id="strict-only"><span class="track" aria-hidden="true"></span>精确模式</label>
         <label class="sr-only" for="field-filter">按专业领域筛选</label>
         <select id="field-filter"></select>
         <label class="sr-only" for="sort">排序方式</label>
@@ -116,9 +158,12 @@
           <option value="name">按名称 A–Z</option>
         </select>
         <button id="shuffle-btn" type="button" class="ghost-btn">随机发现</button>
+        <button id="sheet-done" type="button" class="primary-btn sheet-done">完成</button>
       </div>
     </div>
-    <p class="result-line" id="result-line" aria-live="polite">正在加载项目数据…</p>
+    <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+    <p class="result-line" id="result-line" aria-live="polite">正在加载项目目录…</p>
+    <div class="active-filters" id="active-filters" aria-label="已生效的筛选"></div>
     <div class="grid" id="grid"></div>
     <div class="empty glass" id="empty" hidden>
       <p class="empty-big">这里暂时是空的</p>
@@ -172,24 +217,16 @@
         <p>全站 Star 过万的非 Fork、未归档仓库共 5,399 个，Atlas 收录其中 5,320 个（其余为无简介项目），并逐个打上「万星+」徽章，可一键只看它们。</p>
       </div>
       <div class="method-card glass">
+        <h3>按实分类</h3>
+        <p>每个项目按名称、简介与标签判定所属大类（18 类）、专业领域（16 类）与工作技能；分类不看容易被刷的 Topic 标签，并有显式纠错表与回归测试把关。</p>
+      </div>
+      <div class="method-card glass">
         <h3>有用，才收录</h3>
-        <p>其余精选项目以 GitHub 实时数据为准入线：综合项目原则上 Star 不低于 600；垂类专业 Skill（法律、医疗、金融等）受众小，放宽到 20 起，但都必须有清晰简介。</p>
-      </div>
-      <div class="method-card glass">
-        <h3>逐个标注专业</h3>
-        <p>每个项目按名称、简介与标签判定所属大类（18 类）、专业领域（16 类）与具体工作技能（如 SEO 优化、渗透测试、合同审查），卡片上一眼可见，也能按领域筛选。</p>
-      </div>
-      <div class="method-card glass">
-        <h3>去伪存真</h3>
-        <p>剔除 Fork 镜像与已归档项目；分类不看容易被刷的 Topic 标签，而是按项目名称与简介的真实内容重新归类，避免蹭标签的项目混进 MCP / Skills 区。</p>
+        <p>其余精选以 GitHub 实时数据为准入线：综合项目原则上 Star 不低于 600；垂类专业 Skill 受众小放宽到 20 起，但都必须有清晰简介。剔除 Fork 镜像与已归档项目。</p>
       </div>
       <div class="method-card glass">
         <h3>官方优先</h3>
         <p>Model Context Protocol 官方组织、Anthropic、GitHub、Microsoft、OpenAI 等官方出品单独标注「官方」徽章，找权威实现先看它们。</p>
-      </div>
-      <div class="method-card glass">
-        <h3>持续更新</h3>
-        <p>数据来自 GitHub Search API 的抓取（脚本就在本仓库里）。发现遗漏的好项目，欢迎到仓库提 Issue 推荐收录。</p>
       </div>
     </div>
   </section>
@@ -198,11 +235,49 @@
 <footer>
   <p>Atlas — 由 <a href="https://github.com/liveliho" target="_blank" rel="noopener">liveliho</a> 维护 · 数据来源于 GitHub 公开信息 · 项目版权归各自作者所有</p>
   <p class="foot-links"><a href="https://github.com/liveliho/atlas" target="_blank" rel="noopener">仓库主页</a> · <a href="https://github.com/liveliho/atlas/issues" target="_blank" rel="noopener">推荐收录 / 反馈</a></p>
+  <p class="foot-meta">收录 <span id="foot-total">6,231</span> 个项目 · 数据更新于 <span id="data-updated">—</span>（快照，非实时）</p>
 </footer>
 
 <button id="to-top" type="button" aria-label="回到顶部">
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m-7 7 7-7 7 7"/></svg>
 </button>
+
+<!-- project detail drawer -->
+<div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" hidden>
+  <div class="drawer-head">
+    <div class="drawer-id">
+      <img class="avatar drawer-avatar" id="drawer-avatar" src="" alt="" width="48" height="48">
+      <div>
+        <h3 class="drawer-title" id="drawer-title">—</h3>
+        <p class="drawer-owner" id="drawer-owner">—</p>
+      </div>
+    </div>
+    <div class="drawer-actions">
+      <button type="button" class="icon-btn" id="drawer-fav" aria-label="收藏此项目" aria-pressed="false">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.7C6 16.6 3 13.4 3 9.9 3 7.2 5 5 7.7 5c1.7 0 3.3.9 4.3 2.4C13 5.9 14.6 5 16.3 5 19 5 21 7.2 21 9.9c0 3.5-3 6.7-9 10.8z"/></svg>
+      </button>
+      <button type="button" class="icon-btn" id="drawer-close" aria-label="关闭详情">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+</aside>
+
+<!-- command palette -->
+<div class="palette-backdrop" id="palette-backdrop" hidden>
+  <div class="palette" role="dialog" aria-modal="true" aria-label="全站搜索">
+    <div class="palette-input-row">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg>
+      <input id="palette-input" type="search" placeholder="搜项目、AI 产品、社区、博客、论文…" autocomplete="off" aria-label="全站搜索">
+      <kbd aria-hidden="true">esc</kbd>
+    </div>
+    <div class="palette-results" id="palette-results" role="listbox" aria-label="搜索结果"></div>
+    <p class="palette-foot">↑↓ 选择 · Enter 打开 · 项目打开详情，其余直达官网</p>
+  </div>
+</div>
+
 <script src="assets/app.js"></script>
 <script src="assets/extras.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>

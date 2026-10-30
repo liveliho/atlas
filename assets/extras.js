@@ -257,6 +257,19 @@
     }
   }
 
+  /* exposed for the ⌘K command palette (app.js) — data only, no rendering */
+  window.ATLAS_EXTRAS = {
+    nav: NAV_GROUPS,
+    forums: FORUM_GROUPS,
+    blogs: BLOGS,
+    papers: PAPERS.map(function (p) {
+      var c = {}; for (var k in p) c[k] = p[k];
+      c.url = "https://arxiv.org/abs/" + p.arxiv;
+      return c;
+    }),
+    know: KNOW
+  };
+
   renderGroups("nav-groups", NAV_GROUPS, navCard);
   renderGroups("forum-groups", FORUM_GROUPS, forumCard);
   renderReading();
