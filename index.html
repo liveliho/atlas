@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skill Atlas — GitHub 技能 · MCP · 开源工具星图</title>
+<meta name="description" content="集结 GitHub 上真正有用的 Agent Skills、MCP 服务器与插件、AI Agent 框架、开发工具与学习资源。每个项目都标注作者头像、作者名与 GitHub 地址。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,900&family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="bg" aria-hidden="true">
+  <div class="glow glow-a"></div>
+  <div class="glow glow-b"></div>
+  <div class="glow glow-c"></div>
+  <div class="grain"></div>
+</div>
+
+<header class="topbar">
+  <a class="brand" href="#">
+    <span class="brand-mark">✦</span>
+    <span class="brand-name">Skill <em>Atlas</em></span>
+    <span class="brand-sub">技能星图</span>
+  </a>
+  <nav class="topnav">
+    <a href="#explore">探索项目</a>
+    <a href="#method">收录标准</a>
+    <a href="https://github.com/liveliho/skill-mcp-hub" target="_blank" rel="noopener">GitHub 仓库 ↗</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <p class="kicker">GITHUB · SKILLS · MCP · OPEN SOURCE</p>
+    <h1>把 GitHub 上<br><span class="hl">真正有用</span>的项目，<br>集结在一张星图里。</h1>
+    <p class="hero-desc">Agent Skills、MCP 服务器与插件、AI Agent 框架、趁手的开发工具、值得收藏的学习资源——全部经过筛选：有星标门槛、无分叉镜像、未被归档、简介清晰。每个项目都带着作者的头像、名字和直达链接。</p>
+    <div class="stats" id="stats">
+      <div class="stat"><span class="stat-num" id="stat-total">—</span><span class="stat-label">收录项目</span></div>
+      <div class="stat"><span class="stat-num" id="stat-stars">—</span><span class="stat-label">累计 Star</span></div>
+      <div class="stat"><span class="stat-num" id="stat-authors">—</span><span class="stat-label">作者 / 组织</span></div>
+      <div class="stat"><span class="stat-num" id="stat-cats">—</span><span class="stat-label">主题分类</span></div>
+    </div>
+    <div class="hero-search">
+      <span class="search-icon">⌕</span>
+      <input id="search" type="search" placeholder="搜项目、作者、关键词……比如 playwright、skills、rag、n8n" autocomplete="off">
+      <kbd>⌘ K</kbd>
+    </div>
+  </section>
+
+  <section id="explore" class="explore">
+    <div class="toolbar">
+      <div class="pills" id="pills" role="tablist"></div>
+      <div class="toolbar-right">
+        <label class="toggle"><input type="checkbox" id="featured-only"><span></span>仅看官方出品</label>
+        <select id="sort" aria-label="排序">
+          <option value="stars">按 Star 排序</option>
+          <option value="forks">按 Fork 排序</option>
+          <option value="updated">最近更新</option>
+          <option value="name">按名称 A–Z</option>
+        </select>
+      </div>
+    </div>
+    <p class="result-line" id="result-line"></p>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty" hidden>
+      <p class="empty-big">这片星域暂时是空的</p>
+      <p>换个关键词，或者放宽分类再试试。</p>
+      <button id="reset-btn" type="button">清除筛选</button>
+    </div>
+    <div class="more-wrap">
+      <button id="more-btn" type="button">加载更多项目</button>
+    </div>
+  </section>
+
+  <section id="method" class="method">
+    <h2><span class="sec-en">How we curate</span>收录标准</h2>
+    <div class="method-grid">
+      <div class="method-card">
+        <h3>有用，才收录</h3>
+        <p>以 GitHub 实时数据为准入线：原则上 Star 不低于 600（官方 SDK 等重要项目酌情放宽），且有清晰的项目简介。无简介、难判断用途的项目不收。</p>
+      </div>
+      <div class="method-card">
+        <h3>去伪存真</h3>
+        <p>剔除 Fork 镜像与已归档项目；分类不看容易被刷的 Topic 标签，而是按项目名称与简介的真实内容重新归类，避免「蹭标签」的项目混进 MCP / Skills 区。</p>
+      </div>
+      <div class="method-card">
+        <h3>官方优先</h3>
+        <p>Model Context Protocol 官方组织、Anthropic、GitHub、Microsoft、OpenAI 等官方出品单独标注「官方」徽章，找权威实现先看它们。</p>
+      </div>
+      <div class="method-card">
+        <h3>持续更新</h3>
+        <p>数据来自 GitHub 搜索 API 的实时抓取（抓取脚本就在本仓库里）。发现遗漏的好项目，欢迎到仓库提 Issue 推荐收录。</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>Skill Atlas · 技能星图 — 由 <a href="https://github.com/liveliho" target="_blank" rel="noopener">liveliho</a> 维护 · 数据来源于 GitHub 公开信息 · 项目版权归各自作者所有</p>
+  <p class="foot-links"><a href="https://github.com/liveliho/skill-mcp-hub" target="_blank" rel="noopener">仓库主页</a> · <a href="https://github.com/liveliho/skill-mcp-hub/issues" target="_blank" rel="noopener">推荐收录 / 反馈</a></p>
+</footer>
+
+<script src="assets/app.js"></script>
+</body>
+</html>
