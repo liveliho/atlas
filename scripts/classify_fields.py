@@ -44,6 +44,7 @@ RULES = [
         "product management": "产品规划", "product manager": "产品规划", "prototyp": "原型设计",
         "graphic": "平面设计", "illustrat": "插画设计", "typograph": "字体排版", "art direction": "美术指导",
         "user research": "用户研究", "wireframe": "原型设计",
+        "whiteboard": "原型设计", "drawing": "插画设计", "diagram": "视觉设计", "sketching": "原型设计",
     }),
     ("视频与多媒体", 7, {
         "video": "视频制作", "montage": "视频剪辑", "audio": "音频处理", "music": "音乐制作",
@@ -72,6 +73,9 @@ RULES = [
         "education": "教学辅导", "course": "课程学习", "tutorial": "教程学习", "academic": "学术研究",
         "research": "研究分析", "paper": "论文写作", "study": "学习辅导", "teaching": "教学辅导",
         "learn": "学习辅导", "textbook": "教材学习", "exam": "考试备考", "interview preparation": "面试备考",
+        "lesson": "课程学习", "for beginners": "课程学习", "bootcamp": "课程学习",
+        "algorithm": "算法学习", "data structures": "算法学习", "leetcode": "面试备考",
+        "curriculum": "课程学习", "roadmap": "学习辅导",
     }),
     ("办公与效率", 12, {
         "productivity": "效率提升", "office": "办公处理", "note-taking": "笔记整理", "notes": "笔记整理",
@@ -85,6 +89,8 @@ RULES = [
         "computer vision": "计算机视觉", "transformer": "模型开发", "diffusion": "生成模型",
         "prompt engineering": "提示词工程", "rag": "RAG搭建", "fine-tun": "模型微调",
         "llm": "大模型应用", "ai agent": "智能体开发", "agentic": "智能体开发",
+        "local llm": "大模型应用", "run llm": "推理部署", "model runtime": "推理部署",
+        "generative ai": "生成模型", "large language": "大模型应用",
     }),
     ("软件开发", 14, {
         "code": "代码编写", "coding": "代码编写", "developer": "软件开发", "programming": "程序开发",
@@ -117,7 +123,41 @@ def kw_in(kw, text):
         return bool(_re.search(r"(?<![a-z])" + _re.escape(kw) + r"s?(?![a-z])", text))
     return bool(_re.search(_re.escape(kw) + r"s?(?![a-z])", text))
 
+# Explicit overrides for well-known repositories whose name/description gives
+# the keyword scorer no usable signal (terse or playful descriptions).
+# full_name (lowercase) -> (field, [work_skills]) with a one-line reason each.
+OVERRIDES = {
+    "ollama/ollama": ("人工智能与机器学习", ["大模型应用", "推理部署"]),          # local LLM runtime; desc is a model list
+    "excalidraw/excalidraw": ("产品与设计", ["视觉设计", "原型设计"]),              # virtual whiteboard / diagramming
+    "krahets/hello-algo": ("教育与研究", ["算法学习", "教程学习"]),                 # animated algorithms textbook
+    "microsoft/generative-ai-for-beginners": ("教育与研究", ["课程学习", "大模型应用"]),  # 21-lesson course
+    "select2/select2": ("软件开发", ["前端开发", "类库开发"]),                      # jQuery select-box component library
+    "sindresorhus/awesome": ("教育与研究", ["知识整理", "研究分析"]),               # curated resource lists index
+    "trekhleb/javascript-algorithms": ("教育与研究", ["算法学习", "面试备考"]),     # algorithms study repo
+    "jackfrued/python-100-days": ("教育与研究", ["课程学习", "学习辅导"]),          # Python course
+    "snailclimb/javaguide": ("教育与研究", ["面试备考", "学习辅导"]),               # Java interview guide
+    "airbnb/javascript": ("软件开发", ["代码编写", "代码审查"]),                     # JS style guide
+    "microsoft/typescript": ("软件开发", ["程序开发", "框架开发"]),                  # programming language
+    "denoland/deno": ("软件开发", ["程序开发", "框架开发"]),                         # JS/TS runtime
+    "electron/electron": ("软件开发", ["软件开发", "程序开发"]),                     # desktop app framework
+    "genymobile/scrcpy": ("软件开发", ["移动开发", "调试排错"]),                     # Android mirroring tool
+    "langchain-ai/langchain": ("人工智能与机器学习", ["智能体开发", "大模型应用"]),  # LLM agent framework
+    "langflow-ai/langflow": ("人工智能与机器学习", ["智能体开发", "大模型应用"]),    # visual LLM app builder
+    "anthropics/skills": ("人工智能与机器学习", ["智能体开发", "提示词工程"]),       # official Agent Skills
+    "mattpocock/skills": ("软件开发", ["代码编写", "智能体开发"]),                   # engineering skills pack
+    "openclaw/openclaw": ("人工智能与机器学习", ["智能体开发", "大模型应用"]),       # personal AI agent runtime
+    "github/spec-kit": ("软件开发", ["软件开发", "流程自动化"]),                     # spec-driven development toolkit
+    "iptv-org/iptv": ("视频与多媒体", ["直播运营", "内容制作"]),                     # IPTV channel collection
+    "fatedier/frp": ("运维与DevOps", ["部署运维", "服务器管理"]),                    # reverse proxy / NAT traversal
+    "axios/axios": ("软件开发", ["API开发", "类库开发"]),                            # HTTP client library
+    "521xueweihan/hellogithub": ("教育与研究", ["知识整理", "学习辅导"]),           # curated OSS discovery magazine
+    "twitter/the-algorithm": ("软件开发", ["程序开发", "代码编写"]),                 # production source code, not a course (name trips the education rule)
+}
+
 def classify(p):
+    ov = OVERRIDES.get((p.get("full_name") or "").lower())
+    if ov:
+        return ov[0], list(ov[1])
     name = p["name"].lower()
     desc = p["description"].lower()
     topics = " ".join(p.get("topics", [])).lower()

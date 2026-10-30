@@ -13,8 +13,10 @@ def main():
         with open(f"data/{name}", "w", encoding="utf-8") as f:
             json.dump(projects[i:i+CHUNK], f, ensure_ascii=False, separators=(",", ":"))
         files.append(name)
+    from datetime import datetime, timezone, timedelta
+    gen = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M")
     with open("data/manifest.json", "w", encoding="utf-8") as f:
-        json.dump({"total": len(projects), "files": files}, f, ensure_ascii=False, indent=2)
+        json.dump({"total": len(projects), "generated_at": gen, "files": files}, f, ensure_ascii=False, indent=2)
     print(files)
 
 if __name__ == "__main__":
